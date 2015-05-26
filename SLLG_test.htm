@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+<meta charset='UTF-8'/>
+<script type='text/javascript' src='./SLLG.js'></script>
+<style>html,body{width:100%;height:100%;}
+.sllg_test{display:inline-block;width:45%;height:45%;border:1px solid black;}</style>
+</head><body>
+Benchmark: 500K data size rendered in 80 seconds<br>
+<span class='sllg_test'><div style='height:90%;' id='graph1'></div>
+	<div>At X=<span id='xhi1'></span><span id='yhi1'></span></div></span>
+<span class='sllg_test'><div style='height:90%;' id='graph2'></div>
+	<div>At X=<span id='xhi2'></span><span id='yhi2'></span></div></span>
+<span class='sllg_test'><div style='height:90%;' id='graph3'></div>
+	<div>At <span id='xhi3'></span><span id='yhi3'></span></div></span>
+<span class='sllg_test'><div style='height:90%;' id='graph_big'></div>
+	<div>At <span id='xhib'></span><span id='yhib'></span></div></span><br>
+<script>
+new SLLG('graph1',{'test1':{'0':4,'1':2,'4':1,'2':3,'3':4,'5':0}},{xhili:'xhi1',yhili:'yhi1'});
+
+var gobj2=new SLLG('graph2',{
+	'group1':{'1':5,'4':7,'2':9,'3':6,'5':4},
+	'group2':{'1':8,'2':1,'4':3},
+	'group3':{'2':4,'5':6}
+	},{xhili:'xhi2',yhili:'yhi2',colors:['blue','green','orange']});
+	
+new SLLG('graph3',{'time_test':{'1262322000000':400,'1262408400000':200,'1262494800000':500}},{xhili:'xhi3',yhili:'yhi3',xtimeflag:true,xinc:86400000,xmin:1262322000000,xmax:1262494800000});
+
+function biggraph_plot()
+{	var msec1=(new Date()).getTime();
+	var bigdata={},datasize=500000,lastvals=[],yminb=Infinity,ymaxb=-Infinity;
+	for(var i=0;i<datasize;i++)
+	{	for(var j=0;j<4;j++)
+		{	if(!bigdata['Eth'+j])
+			{	bigdata['Eth'+j]=[];
+				lastvals[j]=0;
+			}lastvals[j]+=(Math.round(Math.random()*10)-5);
+			if(yminb>lastvals[j])
+			{	yminb=lastvals[j]
+			}
+			if(ymaxb<lastvals[j])
+			{	ymaxb=lastvals[j]
+			}
+			bigdata['Eth'+j][i]=lastvals[j];
+		}
+	}
+	var msec2=(new Date()).getTime();
+	var gobjbig=new SLLG('graph_big',bigdata,{xhili:'xhib',yhili:'yhib',colors:['blue','green','orange','red'],xmin:0,xmax:datasize,ymin:yminb,ymax:ymaxb});
+	var msec3=(new Date()).getTime();
+	document.body.appendChild(document.createTextNode(
+		'Big data with '+datasize+' data points generated in '+(msec2-msec1)+' milsec,rendered in '+(msec3-msec2)+' milsec'));
+}
+window.setTimeout(biggraph_plot,2000);
+</script>
+</body></html>
