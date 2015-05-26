@@ -381,7 +381,7 @@ SLLG.prototype.resize_=function(e)
 {	e=e?e:window.event;
 	var t_=this,ud;
 	SLLG.evtcancel(e);
-	if(!t_.drawdone||(t_.excanvflag&&!isNaN(t_.yrecalc_limit)&& t_.xloopn>t_.yrecalc_limit))
+	if(!t_.drawdone||(!isNaN(t_.yrecalc_limit)&& t_.xloopn>t_.yrecalc_limit))
 	{	return false;
 	}t_.drawdone=false;
 	if(t_.yaxmin0!=ud)
