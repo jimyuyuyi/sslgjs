@@ -1,6 +1,5 @@
-/** Super-Lite Line Graphing JS library v1.0
-* https://sourceforge.net/projects/sllgjs
-* jimyuyuyi@gmail.com, 2014-08-19
+/** Super-Lite Line Graphing JS library v1.1
+* jimyuyuyi@gmail.com, 2015-05-26
 *
 * Redistributions of this source code must retain this copyright
 * notice and the following disclaimer.
@@ -17,34 +16,32 @@
 var SLLG=function(pari,mapdatai,opts)
 {	var t_=this,ud,nan=Number.NaN,clrary=[];
 	pari=SLLG.getnodebyname(pari);
-	if(!pari||!pari.tagName){pari=document.body;}	
+	if(!pari){pari=document.body;}	
 	t_.par=pari;	
 	if(!t_.par.style.position|| !t_.par.style.position.match(/\w/))
 	{	t_.par.style.position='relative';
-	}if(t_.par&&t_.par.tagName&& t_.par.tagName.match(/canvas/i))
-	{	t_.mousecanv=t_.par;
-		t_.par=t_.par.parentNode;
 	}t_.mapdata=mapdatai;
 	var defopts={'excanvflag':(typeof(G_vmlCanvasManager)!=''+ud),
 		'grpary':ud,'xinc':nan,'xincsub':nan,'xmin':nan,'xmax':nan,'xary':ud,'xincgap':nan,
-		'xtimeflag':ud,'ypowadjust':true,'drawendfunc':ud,'iframeupdatezoom':ud,
+		'xtimeflag':ud,'ypowadjust':true,'endfunc':ud,'iframeupdatezoom':ud,
 		'yscale':nan,'ydec':4,'yunit':ud,'ymin':nan,'ymax':nan,'yudlbl':'NODATA',
 		'rpthrs':nan,'rpthre':nan,'combinemod':nan,'colind':nan,
-		'yaxmin_roundintrvl':0.2,'yrecalc_limit':21600,
+		'yaxmin_roundintrvl':0.2,'yrecalc_limit':21600,'loopbrk':nan,'resizewait':500,'movewait':40,
 		'colors':[],'lineThickness':1.5,'zoomcolor':'rgba(128,128,128,0.33)',
-		'hili_size':6,'xhili':ud,'yhili':ud,'ser_hide':[],
+		'hili_size':6,'xhili':ud,'yhili':ud,'ser_hide':[],'loadlbl':ud,
 		'statpar':ud,'statmin':ud,'statmax':true,'statavg':true,'stat_triglbl':true,'statpct':nan,
 		'stattimenode':ud,'statcolorlines':ud,'statbench':nan,'statbenchdesc':ud,
 		'gridcolor':'gray','gridsize':2,'gridopacity':0.2,'yavglsize':2,'yleftmargin':5,'yrightmargin':0,'xlblmargin':4,
-		'ms_start':(new Date()).getTime(),'debuglvl':0,'debuglognode':document.body
-		};
+		'debuglvl':0,'debuglognode':document.body
+	};
 	for(var k in defopts)
 	{	if(opts&& opts[k]!=ud)
 		{	t_[k]=opts[k];
 		}else
 		{	t_[k]=defopts[k];
 		}
-	}if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
+	}
+	if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
 	{	t_['statpct']=nan;
 	}if(SLLG.isArray(t_.xary)&& t_.xary.length>0)
 	{	t_.xtimeflag=ud;
@@ -126,17 +123,17 @@ var SLLG=function(pari,mapdatai,opts)
 	if(t_.yunit!=ud&&(typeof(t_.yunit)).match(/^str/i)&& !t_.yunit.match(/[^ ]/))
 	{	t_.yunit=ud;
 	}
-	var genvars={'ptcanvs':[],'mousecanv':0,'loadlbl':0,'hilnds':[],'grpistr':ud,
+	var genvars={'ptcanvs':[],'mousecanv':0,'hilnds':[],'grpistr':ud,'ms_start':ud,
 		'zind0':0,'wi_':0,'hei_':0,'ylblw':0,'ylblh':0,'lh':0,'dragcord':ud,
 		'xlbmin':0,'xaxmin':0,'xaxmax':0,'xaxinc':0, 'xsameyr':true,
 		'ylbmin':0,'yaxmin':0,'yaxmax':0,'yaxinc':0,'yaxmin0':ud,'yaxmax0':ud,
 		'sclx':0,'scly':0,'xloopn':0,'yminact':0,'ymaxact':0,
-		'ofstbleft':0,'ofstbtop':0,'evtsetflag':ud,'drawdoneflag':ud,'zoomflag':ud,
+		'ofstbleft':0,'ofstbtop':0,'mousevtset':ud,'drawdone':ud,'zoomflag':ud,
 		'ysclac':t_.yscale,'ypowpre':'','yunitact':0,
 		'statlbls':[],'statcol_lnodes':{},'yavgls':[],'lgelbls':[],'yhisubs':[],
 		'stat_arys':{'ser_ysum':[],'ser_xcnt':[],'ser_benchcnt':[],'ser_maxpt':[],'ser_vals':[],'ser_minpt':[]},
-		'sbnchnode':ud,'mvtimer':ud,'gi_':0,'loopc':0,
-		'loopbrk':SLLG.ie_loopbrk,'xlastdraw':0,'xlastmove':ud,'pathsize':0};
+		'sbnchnode':ud,'mvtimer':ud,'gi_':0,'loopc':0,		
+		'xlastdraw':0,'xlastmove':ud,'pathsize':0};
 	for(var k in genvars){t_[k]=genvars[k];}
 	for(var gi=0;gi<t_.grpary.length;gi++)
 	{	var grp=t_.grpary[gi];
@@ -145,16 +142,35 @@ var SLLG=function(pari,mapdatai,opts)
 			t_.debuglog('set group index as string to true',1);
 			break;
 		}
-	}t_.zind0=parseFloat(SLLG.getcompstyle(t_.par,'z-index'));
+	}
+	if(!t_.excanvflag&& t_.par.tagName.match(/canvas/i))
+	{	t_.mousecanv=t_.par;
+		t_.par=t_.par.parentNode;
+	}
+	t_.zind0=parseFloat(SLLG.getcompstyle(t_.par,'z-index'));
 	if(isNaN(t_.zind0)){t_.zind0=0;}
 	if(t_['statpar'])
-	{	t_['statpar']=SLLG.getnodebyname(t_['statpar']);
-		t_.loopbrk/=5;
-	}t_.loadlbl=document.createElement('div');
-	t_.loadlbl.className='SLLG_loadlbl';
-	with(t_.loadlbl.style){position='absolute';left='20%';top='0%';
-		zIndex=t_.zind0+t_.grpary.length+9;}
-	t_.par.appendChild(t_.loadlbl);
+	{	t_['statpar']=SLLG.getnodebyname(t_['statpar']);		
+	}
+	if(t_.loadlbl)
+	{	t_.loadlbl=SLLG.getnodebyname(t_.loadlbl);
+		if(!t_.loadlbl)
+		{	t_.loadlbl=document.createElement('div');
+			t_.loadlbl.className='SLLG_loadlbl';
+			with(t_.loadlbl.style){position='absolute';left='20%';top='0%';
+				zIndex=t_.zind0+t_.grpary.length+9;}
+			t_.par.appendChild(t_.loadlbl);
+		}
+	}
+	if(isNaN(t_.loopbrk))
+	{	if(t_.excanvflag)
+		{	t_.loopbrk=30000;
+			t_.debuglog('using excanvas, force setting loop break='+t_.loopbrk,2);
+		}else if(t_.loadlbl)
+		{	t_.loopbrk=40000;
+			t_.debuglog('has loading label, force setting loop break='+t_.loopbrk,2);
+		}
+	}
 	if(!t_.mousecanv)
 	{	t_.mousecanv=document.createElement('canvas');
 		t_.mousecanv.className='SLLG_mousecanv';
@@ -165,7 +181,13 @@ var SLLG=function(pari,mapdatai,opts)
 	if(t_.excanvflag)
 	{	t_.mousecanv=G_vmlCanvasManager.initElement(t_.mousecanv);
 	}t_.mslast=(new Date()).getTime();
-	t_.loopc=-1;t_.checkdocombine();
+	t_.loopc=-1;	
+	var gm=t_.combinemod;
+	if(!gm||isNaN(gm)||t_.grpary.length<gm)
+	{	t_.drawzoom();
+	}else
+	{	t_.checkdocombine();
+	}
 };
 SLLG.prototype.getmapdata=function(grp,xv)
 {	var t_=this,yv,ud;
@@ -202,17 +224,13 @@ SLLG.prototype.getmapdata_sub=function(grp,xv)
 SLLG.prototype.checkdocombine=function()
 {	var t_=this,ud;
 	var gm=t_.combinemod;
-	if(!gm||isNaN(gm)||t_.grpary.length<gm)
-	{	return t_.drawzoom();
-	}if(gm<2){gm=2;}
+	if(gm<2){gm=2;}
 	if(!t_.newgrpary)
 	{	t_.newgrpary=[];t_.tmpmap={};
 		for(var i=0;i<t_.grpary.length;i+=gm)
 		{	var newgrp=t_.grpary[i].replace(/(in|out)bound/i,'Total');
 			t_.newgrpary.push(newgrp);
 		}
-	}if(t_.loadlbl)
-	{	t_.loadlbl.innerHTML='Combining series data - please wait ('+Math.round(100*t_.loopc*t_.xinc/(t_.xmax-t_.xmin))+'% done).';
 	}var xv=t_.xmin;
 	do
 	{	t_.loopc++;
@@ -235,8 +253,10 @@ SLLG.prototype.checkdocombine=function()
 			}			
 			if(!t_.tmpmap[newgrp]){t_.tmpmap[newgrp]={};}
 			t_.tmpmap[newgrp][xv]=yv;
-		}if(t_.excanvflag&& t_.loopc%t_.loopbrk==0)
-		{	window.setTimeout(function(e){t_.checkdocombine();});
+		}if(!isNaN(t_.loopbrk)&& t_.loopc%t_.loopbrk==0)
+		{	if(t_.loadlbl)
+			{	t_.loadlbl.innerHTML='Combining series data: '+Math.round(100*t_.loopc*t_.xinc/(t_.xmax-t_.xmin))+'% done';
+			}window.setTimeout(function(e){t_.checkdocombine();});
 			break;
 		}
 	}while(xv<=t_.xmax);
@@ -252,7 +272,7 @@ SLLG.prototype.checkdocombine=function()
 }
 SLLG.prototype.xval2cord=function(xv,absflag)
 {	if(isNaN(xv)){return xv;}	
-	var t_=this;	
+	var t_=this;
 	var xc=(xv-t_.xaxmin)*t_.sclx;
 	if(absflag)
 	{	xc+=t_.ylblh+t_.ylblw+t_.yleftmargin;
@@ -301,7 +321,7 @@ SLLG.prototype.mousedown_=function(e)
 {	e=e?e:window.event;
 	var t_=this,btn=e.which?e.which:e.button,ud;
 	SLLG.evtcancel(e);	
-	if(!t_.drawdoneflag){return false;}
+	if(!t_.drawdone){return false;}
 	if(btn<=1&& t_.dragcord==ud)
 	{	t_.dragcord=[SLLG.mousepos(e,'X'),SLLG.mousepos(e,'Y')];
 		t_.mousecanv.style.cursor='move';
@@ -310,14 +330,13 @@ SLLG.prototype.mousedown_=function(e)
 		{	if(!t_.hilnds[i]){continue;}
 			t_.hilnds[i].style.visibility='hidden';
 		}
-	}
-	return false;
+	}return false;
 };
 SLLG.prototype.mouseup_=function(e)
 {	e=e?e:window.event;
 	var t_=this,btn=e.which?e.which:e.button,ud;
 	SLLG.evtcancel(e);
-	if(!t_.drawdoneflag){return false;}
+	if(!t_.drawdone){return false;}
 	if(t_.dragcord!=ud)
 	{	var xc=SLLG.mousepos(e,'X');
 		var xvary=[t_.xcord2val(t_.dragcord[0]),t_.xcord2val(xc)];
@@ -338,7 +357,7 @@ SLLG.prototype.mousewheel_=function(e)
 {	e=e?e:window.event;
 	var t_=this,ud,delta=Math.max(-1,Math.min(1,(e.wheelDelta||-e.detail)))
 	SLLG.evtcancel(e);
-	if(!t_.drawdoneflag){return false;}
+	if(!t_.drawdone){return false;}
 	var xmin_new=t_.xaxmin-(60*t_.xinc),xmax_new=t_.xaxmax+(60*t_.xinc);
 	if(delta>0)
 	{	var xc=SLLG.mousepos(e,'X');
@@ -362,20 +381,18 @@ SLLG.prototype.resize_=function(e)
 {	e=e?e:window.event;
 	var t_=this,ud;
 	SLLG.evtcancel(e);
-	if(!t_.drawdoneflag||(t_.excanvflag&&!isNaN(t_.yrecalc_limit)&& t_.xloopn>t_.yrecalc_limit))
+	if(!t_.drawdone||(t_.excanvflag&&!isNaN(t_.yrecalc_limit)&& t_.xloopn>t_.yrecalc_limit))
 	{	return false;
-	}t_.drawdoneflag=false;
+	}t_.drawdone=false;
 	if(t_.yaxmin0!=ud)
 	{	t_.yaxmin=t_.yaxmin0;t_.yaxmax=t_.yaxmax0;
-	}
-	setTimeout(function(e){return t_.drawCalcScale();},500);
+	}setTimeout(function(e){return t_.drawstart();},t_.resizewait);	
 	return false;
 };
 SLLG.prototype.mousemove_=function(e)
-{	e=e?e:window.event;
-	var t_=this,ud;
-	SLLG.evtcancel(e);
-	if(!t_.drawdoneflag){return false;}
+{	var t_=this,ud;
+	e=e?e:window.event;SLLG.evtcancel(e);	
+	if(!t_.drawdone){return false;}
 	var xc=SLLG.mousepos(e,'X'),yc=SLLG.mousepos(e,'Y');
 	if(t_.dragcord!=ud&& t_.zoomcolor)
 	{	var ctx=t_.mousecanv.getContext('2d');
@@ -388,10 +405,10 @@ SLLG.prototype.mousemove_=function(e)
 		ctx.fillRect(xcary[0],0,(xcary[1]-xcary[0]),t_.hei_);
 		return false;
 	}
-	if(t_.drawdoneflag&& t_.hili_size>0)
+	if(t_.drawdone&& t_.hili_size>0)
 	{	if(t_.excanvflag&& t_.xloopn>=t_.loopbrk)
 		{	if(t_.mvtimer){clearTimeout(t_.mvtimer);}
-			t_.mvtimer=setTimeout(function(e){t_.hili_update(xc,yc);delete(t_.mvtimer);},40);
+			t_.mvtimer=setTimeout(function(e){t_.hili_update(xc,yc);delete(t_.mvtimer);},t_.movewait);
 		}else
 		{	t_.hili_update(xc,yc);
 		}
@@ -441,13 +458,13 @@ SLLG.prototype.hili_update=function(xc,yc)
 			break;
 		}
 	}
-	var hrskipflag=false;
+	var hrskipped=false;
 	if(t_.xtimeflag&& (!isNaN(t_.rpthrs)||!isNaN(t_.rpthre)))
 	{	dobj.setTime(xv);
 		var hrcur=dobj.getHours();
 		if((!isNaN(t_.rpthrs)&& hrcur<t_.rpthrs)
 			||(!isNaN(t_.rpthre)&& hrcur>t_.rpthre))
-		{	hrskipflag=true;
+		{	hrskipped=true;
 		}
 	}
 	for(var i=0;i<t_.grpary.length;i++)
@@ -455,7 +472,7 @@ SLLG.prototype.hili_update=function(xc,yc)
 		var yv=t_.getmapdata(i,xv);
 		if(yv==ud)
 		{	yv=t_['yudlbl'];
-		}else if(hrskipflag)
+		}else if(hrskipped)
 		{	 yv='hour-skipped';
 		}else
 		{	t_.debuglog('hili_update ERR undef groupind='+i+'|group='+t_.grpary[i]+'|xv='+xv+'!',2);
@@ -495,9 +512,28 @@ SLLG.prototype.hili_update=function(xc,yc)
 	var mscur=(new Date()).getTime();
 	t_.debuglog('hiliupdate:xstr='+xstr+'|'+(mscur-msstart)+'milsec<br>',4);
 };
+SLLG.prototype.drawstart=function()
+{	var t_=this;
+	t_.drawdone=false;
+	t_.ms_start=(new Date()).getTime();
+	if(t_.loadlbl)
+	{	t_.loadlbl.style.display='block';
+		t_.loadlbl.innerHTML='Initalizing graph';
+	}t_.calcscales();
+	t_.drawlegend();
+	t_.hili_update();	
+	t_.gi_=0;
+	for(var k in t_['stat_arys']){t_[k]=[];}	
+	for(var i=0;i<t_.grpary.length;i++)
+	{	if(t_.statlbls[i])
+		{	t_.statlbls[i].innerHTML='';
+		}
+	}t_.drawseries();
+}
 SLLG.prototype.drawzoom=function(x0,x1)
-{	var t_=this,ud;t_.drawdoneflag=false;t_.zoomflag=false;
-	t_.debuglog('drawzoom: xrange='+x0+'~'+x1,2);
+{	var t_=this,ud;	
+	t_.zoomflag=false;	
+	t_.debuglog('drawzoom: xrange='+x0+'~'+x1,2);	
 	t_.xaxmin=x0;t_.xaxmax=x1;
 	if(t_.xaxmin==ud||isNaN(t_.xaxmin)||t_.xaxmin<t_.xmin)
 	{	t_.xaxmin=t_.xmin;
@@ -510,24 +546,23 @@ SLLG.prototype.drawzoom=function(x0,x1)
 	{	t_.zoomflag=true;
 	}
 	t_.xloopn=Math.ceil((t_.xaxmax-t_.xaxmin)/t_.xinc);	
-	if(!isNaN(t_.yrecalc_limit)&& t_.excanvflag&& t_.yrecalc_limit>t_.loopbrk)
+	if(!isNaN(t_.loopbrk)&& (isNaN(t_.yrecalc_limit)|| t_.yrecalc_limit>t_.loopbrk))
 	{	t_.yrecalc_limit=t_.loopbrk;
 	}
 	if(!isNaN(t_.yrecalc_limit)&& t_.xloopn<=t_.yrecalc_limit
 		&&(t_.ypowadjust||t_.zoomflag||isNaN(t_.ymax)))
 	{	t_.yminact=Infinity; t_.ymaxact=-Infinity;
 		t_.gi_=0;t_.loopc=-1;
-		t_.calcY_loopx();
+		t_.getyrange_loopx();
 	}else
 	{	t_.yaxmax=t_.ymax;
 		if(isNaN(t_.ymin)){t_.ymin=0;}
 		t_.yaxmin=t_.ymin;
-		t_.drawCalcScale();
+		t_.drawstart();
 	}
 };
-SLLG.prototype.drawCalcScale=function()
-{	var t_=this,ud,dobj=new Date();
-	if(t_.loadlbl){t_.loadlbl.style.display='block';}
+SLLG.prototype.calcscales=function()
+{	var t_=this,ud,dobj=new Date();	
 	t_.lh=SLLG.getstr_wh('ZZZ',t_.par).h;
 	var xmult=t_.xloopn/10;
 	if(t_.xtimeflag)
@@ -660,12 +695,11 @@ SLLG.prototype.drawCalcScale=function()
 		t_.ptcanvs[i].style.left=(t_.ylblw+t_.ylblh+t_.yleftmargin)+'px';
 		if(t_.yavgls[i]){t_.yavgls[i].style.display='none';}
 	}
-	with(t_.mousecanv){
-		style.left=(t_.ylblw+t_.ylblh-t_.yleftmargin)+'px';
+	with(t_.mousecanv)
+	{	style.left=(t_.ylblw+t_.ylblh-t_.yleftmargin)+'px';
 		width=t_.wi_+(2*t_.yleftmargin);
 		height=t_.hei_;
-	}
-	t_.ofstbleft=t_.ylblw+t_.ylblh+t_.yleftmargin;
+	}t_.ofstbleft=t_.ylblw+t_.ylblh+t_.yleftmargin;
 	t_.ofstbtop=0;
 	var pnode=t_.par;
 	while(pnode&& pnode.parentNode&& pnode!=document.body&& pnode!=window&& pnode.offsetLeft==ud)
@@ -673,20 +707,14 @@ SLLG.prototype.drawCalcScale=function()
 	}t_.ofstbleft+=pnode.offsetLeft;
 	t_.ofstbtop+=pnode.offsetTop;
 	t_.debuglog('wi_='+t_.wi_+'|hei_='+t_.hei_+'|sclx='+t_.sclx+'|scly='+t_.scly+'|xloopn='+t_.xloopn+'|canvw='+t_.ptcanvs[0].width+'|yaxmin='+t_.yaxmin+'|yaxmax='+t_.yaxmax+'|ofstbleft='+t_.ofstbleft+'|ofstbtop='+t_.ofstbtop,2);
-	t_.drawlegend();
-	t_.hili_update();
 	t_.mslast=(new Date()).getTime();
-	t_.drawpoints();
 };
-SLLG.prototype.calcY_loopx=function()
+SLLG.prototype.getyrange_loopx=function()
 {	var t_=this,xv,dobj=new Date(),ud;
 	if(t_['ser_hide'][t_.gi_]|| t_.grpary[t_.gi_]==ud)
 	{	t_.loopc=Math.ceil(t_.xloopn);
 		t_.debuglog('calcY skip hidden series #'+t_.gi_,3);
-	}
-	if(t_.loadlbl)
-	{	t_.loadlbl.innerHTML='Calculating Y axis ranges - please wait ('+Math.round(100*(t_.loopc+t_.gi_*t_.xloopn)/(t_.grpary.length*t_.xloopn))+'% done).';
-	}
+	}	
 	do
 	{	t_.loopc++;
 		xv=(t_.loopc*t_.xinc)+t_.xaxmin;
@@ -703,20 +731,22 @@ SLLG.prototype.calcY_loopx=function()
 		if(isNaN(yv)){continue;}
 		if(t_.yminact>yv){t_.yminact=yv;}
 		if(t_.ymaxact<yv){t_.ymaxact=yv;}
-		if(t_.excanvflag&& t_.loopc%t_.loopbrk==0)
-		{	window.setTimeout(function(e){t_.calcY_loopx();});
+		if(!isNaN(t_.loopbrk)&& t_.loopc%t_.loopbrk==0)
+		{	if(t_.loadlbl)
+			{	t_.loadlbl.innerHTML='Calculating Y axis ranges: '+Math.round(100*(t_.loopc+t_.gi_*t_.xloopn)/(t_.grpary.length*t_.xloopn))+'% done';
+			}window.setTimeout(function(e){t_.getyrange_loopx();});
 			break;
 		}
 	}while(xv<=t_.xaxmax);
 	if(xv>t_.xaxmax)
 	{	t_.gi_++;
 		if(t_.gi_<t_.grpary.length)
-		{	t_.loopc=-1;t_.calcY_loopx();
+		{	t_.loopc=-1;t_.getyrange_loopx();
 		}else
 		{	t_.yaxmin=t_.yminact;
 			t_.yaxmax=t_.ymaxact;
 			t_.debuglog('found y-actuals:min='+t_.yminact+'|max='+t_.ymaxact+' for x='+t_.xaxmin+'~'+t_.xaxmax,2);
-			t_.drawCalcScale();
+			t_.drawstart();
 		}
 	}
 };
@@ -879,22 +909,13 @@ SLLG.prototype.drawlegend=function()
 		t_.lgelbls.push(m);
 	}
 };
-SLLG.prototype.drawpoints=function(ginc)
+SLLG.prototype.drawseries=function()
 {	var t_=this;
-	if(ginc){t_.gi_++;}
-	else
-	{	for(var k in t_['stat_arys']){t_[k]=[];}
-		t_.gi_=0;
-		for(var i=0;i<t_.grpary.length;i++)
-		{	if(t_.statlbls[i])
-			{	t_.statlbls[i].innerHTML='';
-			}
-		}
-	}t_.pathsize=0;
+	t_.pathsize=0;
 	t_.loopc=-1;t_.xlastdraw=Number.NaN;
-	t_.drawpoints_loopx();
+	t_.drawseries_loopx();	
 };
-SLLG.prototype.drawpoints_loopx=function()
+SLLG.prototype.drawseries_loopx=function()
 {	var t_=this,dobj=new Date(),cx1,xv,ud,nan=Number.NaN;
 	if(t_.ptcanvs[t_.gi_])
 	{	cx1=t_.ptcanvs[t_.gi_].getContext('2d')
@@ -903,11 +924,7 @@ SLLG.prototype.drawpoints_loopx=function()
 	if(t_['ser_hide'][t_.gi_]||t_.grpary[t_.gi_]==ud)
 	{	t_.loopc=Math.ceil(t_.xloopn);
 		t_.debuglog('draw skip hidden series #'+t_.gi_,3);
-	}
-	t_.debuglog('hideseek:gi='+t_.gi_+'|hideflag='+t_['ser_hide'][t_.gi_]+'|loopc='+t_.loopc,4);
-	if(t_.loadlbl)
-	{	t_.loadlbl.innerHTML='Drawing data points - please wait ('+Math.round(100*(t_.loopc+t_.gi_*t_.xloopn)/(t_.grpary.length*t_.xloopn))+'% done).';
-	}	
+	}t_.debuglog('hideseek:gi='+t_.gi_+'|hideflag='+t_['ser_hide'][t_.gi_]+'|loopc='+t_.loopc,4);	
 	do
 	{	t_.loopc++;
 		xv=(t_.loopc*t_.xinc)+t_.xaxmin;		
@@ -969,7 +986,7 @@ SLLG.prototype.drawpoints_loopx=function()
 		}
 		if(t_.excanvflag&& t_.pathsize>0&&t_.pathsize%SLLG.ie_pathlim==0)
 		{	cx1.stroke();t_.pathsize=0;
-			t_.debuglog('ie pathend on xv='+xv+'|loopc='+t_.loopc+'|gi='+t_.gi_,3);
+			t_.debuglog('excanvas IE pathend on xv='+xv+'|loopc='+t_.loopc+'|gi='+t_.gi_,3);
 			t_.xlastdraw=nan;
 		}
 		if(isNaN(t_.xlastdraw)&& !isNaN(yv))
@@ -980,8 +997,10 @@ SLLG.prototype.drawpoints_loopx=function()
 			t_.xlastdraw=xv;
 			t_.debuglog('beginpath on xv='+xv+'|loopc='+t_.loopc+'|gi='+t_.gi_,3);
 		}
-		if(t_.excanvflag&& t_.loopc%t_.loopbrk==0)
-		{	window.setTimeout(function(e){t_.drawpoints_loopx();});
+		if(!isNaN(t_.loopbrk)&& t_.loopc%t_.loopbrk==0)
+		{	if(t_.loadlbl)
+			{	t_.loadlbl.innerHTML='Drawing data points: '+Math.round(100*(t_.loopc+t_.gi_*t_.xloopn)/(t_.grpary.length*t_.xloopn))+'% done';
+			}window.setTimeout(function(e){t_.drawseries_loopx();});
 			break;
 		}
 	}while(xv<=t_.xaxmax);
@@ -994,7 +1013,8 @@ SLLG.prototype.drawpoints_loopx=function()
 		t_.debuglog('loopend group #'+t_.gi_+':'+(mscur-t_.mslast)+'milsec<br>',1);
 		t_.mslast=(new Date()).getTime();
 		if(t_.gi_<t_.grpary.length-1)
-		{	t_.drawpoints(true);
+		{	t_.gi_++;
+			t_.drawseries();
 		}else
 		{	t_.drawend();
 		}
@@ -1241,22 +1261,19 @@ SLLG.prototype.drawend=function()
 	t_.mslast=(new Date()).getTime();
 	if(t_.loadlbl){t_.loadlbl.style.display='none';t_.loadlbl.innerHTML='';}
 	if(t_.statpar){t_.drawstats();}
-	if(t_.drawendfunc)
-	{	t_.drawendfunc();
+	if(t_.endfunc)
+	{	t_.endfunc(t_);
 	}var mscur=(new Date()).getTime();
-	t_.debuglog('drawend func run:'+(mscur-t_.mslast)+'milsec',1);
-	if(t_.ms_start!=ud)
-	{	t_.debuglog('TTL runtime:'+(mscur-t_.ms_start)+'milsec',1);		
-		t_.ms_start=ud;
-	}
-	if(!t_.evtsetflag)
+	t_.debuglog('drawend func run:'+(mscur-t_.mslast)+'milsec; total runtime:'+(mscur-t_.ms_start)+'milsec',1);	
+	if(!isNaN(t_.movewait)&& t_.movewait>=0&& !t_.mousevtset)
 	{	for(var evt in {'mousemove':0,'mousedown':0,'mouseup':0/*,'mousewheel':0*/})
 		{	t_.evtsetup(t_.mousecanv,evt);
-		}SLLG.evtadd(window,'resize',function(e){return t_['resize_'](e);});
-		t_.evtsetflag=true;
+		}t_.mousevtset=true;
 	}
-	if(t_.iframeupdatezoom){t_.iframe_update();}
-	t_.drawdoneflag=true;
+	if(!isNaN(t_.resizewait)&& t_.resizewait>=0)
+	{	SLLG.evtadd(window,'resize',function(e){return t_['resize_'](e);});
+	}if(t_.iframeupdatezoom){t_.iframe_update();}
+	t_.drawdone=true;
 };
 SLLG.prototype.hili_init=function()
 {	var t_=this,ud;
@@ -1309,9 +1326,8 @@ SLLG.prototype.debuglog=function(s,c){
 	if(t_.par.id)
 	{	s='['+t_.par.id+']'+s;
 	}s='DEBUG_SLLG '+s;
-	if(t_.debuglognode&& !t_.debuglognode.tagName)
-	{	t_.debuglognode=ud;
-	}if(!t_.debuglognode&& window.console)
+	t_.debuglognode=SLLG.getnodebyname(t_.debuglognode);
+	if(!t_.debuglognode&& window.console)
 	{	return console.log(s);
 	}var div1=document.createElement('div');
 	div1.className='SLLG_debug';
@@ -1359,7 +1375,7 @@ SLLG.prototype.exportdataurl=function()
 		expctx.fillText(txt,xc,yc);
 	}return expcanv.toDataURL();
 };
-SLLG.ie_pathlim=8190; SLLG.ie_loopbrk=150000;
+SLLG.ie_pathlim=8190;
 SLLG.rounddec=function(n,p)
 {	if(isNaN(p)){return n;}
 	var ps= Math.pow(10,p);
@@ -1488,12 +1504,13 @@ SLLG.isArray=function(b)
 	return !((a!='object'&&!(a=='function'&&typeof(b.item)=='function'))||b==ud||typeof(b.length)!='number'||b.nodeType===3);
 };
 SLLG.getnodebyname=function(nd)
-{	if(nd==undefined){return nd;}
+{	var ud;
+	if(nd==ud||nd.tagName){return nd;}	
 	if((typeof(nd)).match(/^str/i))
 	{	var nd2=document.getElementById(nd);
 		if(!nd2)
 		{	nd2=document.getElementsByName(nd);
 			if(nd2&& nd2.length>0){nd2=nd2[0];}
-		}nd=nd2;
-	}return nd;
+		}return nd2;
+	}return ud;
 };
