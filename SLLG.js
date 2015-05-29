@@ -13,38 +13,6 @@
 * does NOT become part of any other Open Source or Commercially licensed
 * development library or toolkit without explicit permission.
 **/
-function objiter(obj,recur)
-{	var str='', sep=',\n';
-	for(var key in obj)
-	{	if(!key){continue;}
-		try{
-			if((typeof(obj[key])).match(/funct/i))
-			{	str+= key+':'+(typeof obj[key])+sep;
-				continue;
-			}
-			if(obj[key]&& obj[key].length>1000)
-			{	str+= key+':LONG STRING'+sep;
-				continue;
-			}if((typeof(obj[key])).match(/object/i)&& obj[key])
-			{	if(recur)
-				{	str+= key+':'+objiter(obj[key],recur);
-				}else if(obj[key].splice)
-				{	str+= key+':['+obj[key]+']'+sep;
-				}else if(obj[key][0]&& obj[key][0].name&& obj[key][0].value)
-				{	str+= key+':['+namevaliter(obj[key])+']'+sep;
-				}else
-				{	str+= key+':{'+obj[key]+'}'+sep;
-				}continue;
-			}str+= key+':'+obj[key]+sep;
-		}catch(e){str+= key+' error:'+e+sep;}
-	}if((typeof(obj)).match(/object/i))
-	{	if(obj.splice)
-		{	str= '['+str+']';
-		}else
-		{	str= '{'+str+'}';
-		}
-	}return str;
-}
 var SLLG=function(pari,mapdatai,opts)
 {	var t_=this,ud,nan=Number.NaN,clrary=[];
 	pari=SLLG.getnodebyname(pari);
