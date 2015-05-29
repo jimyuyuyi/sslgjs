@@ -13,6 +13,38 @@
 * does NOT become part of any other Open Source or Commercially licensed
 * development library or toolkit without explicit permission.
 **/
+function objiter(obj,recur)
+{	var str='', sep=',\n';
+	for(var key in obj)
+	{	if(!key){continue;}
+		try{
+			if((typeof(obj[key])).match(/funct/i))
+			{	str+= key+':'+(typeof obj[key])+sep;
+				continue;
+			}
+			if(obj[key]&& obj[key].length>1000)
+			{	str+= key+':LONG STRING'+sep;
+				continue;
+			}if((typeof(obj[key])).match(/object/i)&& obj[key])
+			{	if(recur)
+				{	str+= key+':'+objiter(obj[key],recur);
+				}else if(obj[key].splice)
+				{	str+= key+':['+obj[key]+']'+sep;
+				}else if(obj[key][0]&& obj[key][0].name&& obj[key][0].value)
+				{	str+= key+':['+namevaliter(obj[key])+']'+sep;
+				}else
+				{	str+= key+':{'+obj[key]+'}'+sep;
+				}continue;
+			}str+= key+':'+obj[key]+sep;
+		}catch(e){str+= key+' error:'+e+sep;}
+	}if((typeof(obj)).match(/object/i))
+	{	if(obj.splice)
+		{	str= '['+str+']';
+		}else
+		{	str= '{'+str+'}';
+		}
+	}return str;
+}
 var SLLG=function(pari,mapdatai,opts)
 {	var t_=this,ud,nan=Number.NaN,clrary=[];
 	pari=SLLG.getnodebyname(pari);
@@ -26,22 +58,21 @@ var SLLG=function(pari,mapdatai,opts)
 		'xtimeflag':ud,'ypowadjust':true,'endfunc':ud,'iframeupdatezoom':ud,
 		'yscale':nan,'ydec':4,'yunit':ud,'ymin':nan,'ymax':nan,'yudlbl':'NODATA',
 		'rpthrs':nan,'rpthre':nan,'combinemod':nan,'colind':nan,
-		'yaxmin_roundintrvl':0.2,'yrecalc_limit':21600,'loopbrk':nan,'resizewait':500,'movewait':40,
+		'ymultintrvl':nan,'yaxmin_roundintrvl':0.2,
+		'yrecalc_limit':21600,'loopbrk':nan,'resizewait':500,'movewait':40,
 		'colors':[],'lineThickness':1.5,'zoomcolor':'rgba(128,128,128,0.33)',
 		'hili_size':6,'xhili':ud,'yhili':ud,'ser_hide':[],'loadlbl':ud,
 		'statpar':ud,'statmin':ud,'statmax':true,'statavg':true,'stat_triglbl':true,'statpct':nan,
 		'stattimenode':ud,'statcolorlines':ud,'statbench':nan,'statbenchdesc':ud,
 		'gridcolor':'gray','gridsize':2,'gridopacity':0.2,'yavglsize':2,'yleftmargin':5,'yrightmargin':0,'xlblmargin':4,
 		'debuglvl':0,'debuglognode':document.body
-	};
-	for(var k in defopts)
+	};for(var k in defopts)
 	{	if(opts&& opts[k]!=ud)
 		{	t_[k]=opts[k];
 		}else
 		{	t_[k]=defopts[k];
 		}
-	}
-	if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
+	}if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
 	{	t_['statpct']=nan;
 	}if(SLLG.isArray(t_.xary)&& t_.xary.length>0)
 	{	t_.xtimeflag=ud;
@@ -52,8 +83,8 @@ var SLLG=function(pari,mapdatai,opts)
 		{	t_.xmax=t_.xary.length-1;
 		}
 	}else
-	{	t_.xary=ud;		
-		if(isNaN(t_.xmax)|| isNaN(t_.xmin))
+	{	t_.xary=ud;
+		if(isNaN(t_.xmax)||isNaN(t_.xmin))
 		{	if(isNaN(t_.xmin)){t_.xmin=Infinity;}
 			if(isNaN(t_.xmax)){t_.xmax=-Infinity;}
 			var trycnt=100;
@@ -119,18 +150,16 @@ var SLLG=function(pari,mapdatai,opts)
 		}if(!isNaN(he)&&he<0)
 		{	t_.rpthre=nan;
 		}
-	}
-	if(t_.yunit!=ud&&(typeof(t_.yunit)).match(/^str/i)&& !t_.yunit.match(/[^ ]/))
+	}if(t_.yunit!=ud&&(typeof(t_.yunit)).match(/^str/i)&& !t_.yunit.match(/[^ ]/))
 	{	t_.yunit=ud;
-	}
-	var genvars={'ptcanvs':[],'mousecanv':0,'hilnds':[],'grpistr':ud,'ms_start':ud,
+	}var genvars={'ptcanvs':[],'ptcanvorigs':[],'mousecanv':0,'hilnds':[],'grpistr':ud,'ms_start':ud,
 		'zind0':0,'wi_':0,'hei_':0,'ylblw':0,'ylblh':0,'lh':0,'dragcord':ud,
-		'xlbmin':0,'xaxmin':0,'xaxmax':0,'xaxinc':0, 'xsameyr':true,
+		'xlbmin':0,'xaxmin':0,'xaxmax':0,'xaxinc':0,'xsameyr':true,
 		'ylbmin':0,'yaxmin':0,'yaxmax':0,'yaxinc':0,'yaxmin0':ud,'yaxmax0':ud,
 		'sclx':0,'scly':0,'xloopn':0,'yminact':0,'ymaxact':0,
-		'ofstbleft':0,'ofstbtop':0,'mousevtset':ud,'drawdone':ud,'zoomflag':ud,
+		'ofstbleft':0,'ofstbtop':0,'mousevtset':ud,'drawdone':ud,'iszoomed':ud,
 		'ysclac':t_.yscale,'ypowpre':'','yunitact':0,
-		'statlbls':[],'statcol_lnodes':{},'yavgls':[],'lgelbls':[],'yhisubs':[],
+		'plotdata':{},'statlbls':[],'statcol_lnodes':{},'yavgls':[],'lgelbls':[],'yhisubs':[],
 		'stat_arys':{'ser_ysum':[],'ser_xcnt':[],'ser_benchcnt':[],'ser_maxpt':[],'ser_vals':[],'ser_minpt':[]},
 		'sbnchnode':ud,'mvtimer':ud,'gi_':0,'loopc':0,		
 		'xlastdraw':0,'xlastmove':ud,'pathsize':0};
@@ -142,17 +171,14 @@ var SLLG=function(pari,mapdatai,opts)
 			t_.debuglog('set group index as string to true',1);
 			break;
 		}
-	}
-	if(!t_.excanvflag&& t_.par.tagName.match(/canvas/i))
+	}if(!t_.excanvflag&& t_.par.tagName.match(/canvas/i))
 	{	t_.mousecanv=t_.par;
 		t_.par=t_.par.parentNode;
-	}
-	t_.zind0=parseFloat(SLLG.getcompstyle(t_.par,'z-index'));
+	}t_.zind0=parseFloat(SLLG.getcompstyle(t_.par,'z-index'));
 	if(isNaN(t_.zind0)){t_.zind0=0;}
 	if(t_['statpar'])
 	{	t_['statpar']=SLLG.getnodebyname(t_['statpar']);		
-	}
-	if(t_.loadlbl)
+	}if(t_.loadlbl)
 	{	t_.loadlbl=SLLG.getnodebyname(t_.loadlbl);
 		if(!t_.loadlbl)
 		{	t_.loadlbl=document.createElement('div');
@@ -161,8 +187,7 @@ var SLLG=function(pari,mapdatai,opts)
 				zIndex=t_.zind0+t_.grpary.length+9;}
 			t_.par.appendChild(t_.loadlbl);
 		}
-	}
-	if(isNaN(t_.loopbrk))
+	}if(isNaN(t_.loopbrk))
 	{	if(t_.excanvflag)
 		{	t_.loopbrk=30000;
 			t_.debuglog('using excanvas, force setting loop break='+t_.loopbrk,2);
@@ -170,8 +195,7 @@ var SLLG=function(pari,mapdatai,opts)
 		{	t_.loopbrk=40000;
 			t_.debuglog('has loading label, force setting loop break='+t_.loopbrk,2);
 		}
-	}
-	if(!t_.mousecanv)
+	}if(!t_.mousecanv)
 	{	t_.mousecanv=document.createElement('canvas');
 		t_.mousecanv.className='SLLG_mousecanv';
 	}with(t_.mousecanv.style)
@@ -191,16 +215,34 @@ var SLLG=function(pari,mapdatai,opts)
 };
 SLLG.prototype.getmapdata=function(grp,xv)
 {	var t_=this,yv,ud;
-	if(isNaN(t_.xincsub)|| t_.xincsub==0||Math.abs(t_.xincsub)>=Math.abs(t_.xinc))
+	if(t_.plotdata[grp]&& t_.plotdata[grp][xv])
+	{	return t_.plotdata[grp][xv];
+	}if(isNaN(t_.xincsub)|| t_.xincsub==0||Math.abs(t_.xincsub)>=Math.abs(t_.xinc))
 	{	yv=t_.getmapdata_sub(grp,xv);
 	}else
-	{	for(var xv2=xv;xv2<xv+t_.xinc;xv2+=t_.xincsub)
+	{	var xv2l=ud,roundnext;
+		for(var xv2=xv;xv2<xv+t_.xinc;xv2+=t_.xincsub)
 		{	var yv2=t_.getmapdata_sub(grp,xv2);
 			if(isNaN(yv2)){continue;}
+			if(t_.ymultintrvl&& !isNaN(t_.ymultintrvl))
+			{	t_.debuglog('y-interval based mulitiplier:xv ='+xv2+'|xv last='+xv2l+'|intrvl='+t_.ymultintrvl,4);
+				if(roundnext)
+				{	var ymult=Math.round((xv2-xv2l)/t_.ymultintrvl);
+					if(ymult>1){yv*=ymult;}
+					roundnext=false;
+				}if(xv2l==ud)
+				{	roundnext=true;
+				}else
+				{	var ymult=Math.round((xv2-xv2l)/t_.ymultintrvl);
+					if(ymult>1){yv2*=ymult;}
+				}
+			}xv2l=xv2;
 			yv=(yv?yv:0)+yv2;
 		}
 	}if(yv==ud&&!isNaN(t_['yudlbl']))
 	{	yv=t_['yudlbl'];
+	}if(t_.plotdata[grp])
+	{	t_.plotdata[grp][xv]=yv;
 	}return yv;
 };
 SLLG.prototype.getmapdata_sub=function(grp,xv)
@@ -250,8 +292,7 @@ SLLG.prototype.checkdocombine=function()
 			var newgrp=Math.floor(i/gm);
 			if(t_.grpistr)
 			{	newgrp=t_.newgrpary[newgrp];
-			}			
-			if(!t_.tmpmap[newgrp]){t_.tmpmap[newgrp]={};}
+			}if(!t_.tmpmap[newgrp]){t_.tmpmap[newgrp]={};}
 			t_.tmpmap[newgrp][xv]=yv;
 		}if(!isNaN(t_.loopbrk)&& t_.loopc%t_.loopbrk==0)
 		{	if(t_.loadlbl)
@@ -316,7 +357,7 @@ SLLG.prototype.evtsetup=function(el,evt)
 		if(!t_|| !t_[evt+'_']){return false;}
 		return t_[evt+'_'](e);};
 	SLLG.evtadd(el,evt,fn);
-}
+};
 SLLG.prototype.mousedown_=function(e)
 {	e=e?e:window.event;
 	var t_=this,btn=e.which?e.which:e.button,ud;
@@ -340,8 +381,11 @@ SLLG.prototype.mouseup_=function(e)
 	if(t_.dragcord!=ud)
 	{	var xc=SLLG.mousepos(e,'X');
 		var xvary=[t_.xcord2val(t_.dragcord[0]),t_.xcord2val(xc)];
-		xvary.sort();
-		t_.dragcord=ud;
+		if(xvary[1]<xvary[0])
+		{	var xv0=xvary[0];
+			xvary[0]=xvary[1];
+			xvary[1]=xv0;
+		}t_.dragcord=ud;
 		var ctx=t_.mousecanv.getContext('2d')
 		ctx.clearRect(0,0,t_.mousecanv.width,t_.mousecanv.height);
 		if(xvary[1]-xvary[0]>=t_.xinc)
@@ -350,7 +394,10 @@ SLLG.prototype.mouseup_=function(e)
 			}t_.drawzoom(xvary[0],xvary[1]);
 		}else if(t_.xaxmin!=t_.xmin||t_.xaxmax!=t_.xmax)
 		{	t_.drawzoom();
-		}t_.mousecanv.style.cursor='default';
+		}else
+		{	t_.debuglog('not zoom:'+xvary,4);
+		}
+		t_.mousecanv.style.cursor='default';
 	}return false;
 };
 SLLG.prototype.mousewheel_=function(e)
@@ -520,37 +567,51 @@ SLLG.prototype.drawstart=function()
 	{	t_.loadlbl.style.display='block';
 		t_.loadlbl.innerHTML='Initalizing graph';
 	}t_.calcscales();
+	t_.canvasinit();
 	t_.drawlegend();
 	t_.hili_update();	
 	t_.gi_=0;
 	for(var k in t_['stat_arys']){t_[k]=[];}	
-	for(var i=0;i<t_.grpary.length;i++)
-	{	if(t_.statlbls[i])
-		{	t_.statlbls[i].innerHTML='';
+	t_.plotdata={};
+	for(var gi=0;gi<t_.grpary.length;gi++)
+	{	t_.plotdata[gi]={};
+		if(t_.statlbls[gi])
+		{	t_.statlbls[gi].innerHTML='';
 		}
-	}t_.drawseries();
+	}	
+	if(t_.ptcanvorigs.length>0&& t_.xloopn>t_.yrecalc_limit&& !t_.iszoomed)
+	{	for(var gi=0;gi<t_.ptcanvorigs.length;gi++)
+		{	if(t_.excanvflag)
+			{	t_.ptcanvs[gi].getContext('2d').element_.innerHTML=t_.ptcanvorigs[gi];
+				continue;
+			}t_.par.insertBefore(t_.ptcanvorigs[gi],t_.ptcanvs[gi]);
+			t_.par.removeChild(t_.ptcanvs[gi]);
+			t_.ptcanvs[gi]=t_.ptcanvorigs[gi];
+			t_.ptcanvorigs[gi]=SLLG.clonecanvas(t_.ptcanvs[gi]);
+		}return t_.drawend();
+	}return t_.drawseries();
 }
 SLLG.prototype.drawzoom=function(x0,x1)
 {	var t_=this,ud;	
-	t_.zoomflag=false;	
+	t_.iszoomed=false;	
 	t_.debuglog('drawzoom: xrange='+x0+'~'+x1,2);	
 	t_.xaxmin=x0;t_.xaxmax=x1;
 	if(t_.xaxmin==ud||isNaN(t_.xaxmin)||t_.xaxmin<t_.xmin)
 	{	t_.xaxmin=t_.xmin;
 	}else
-	{	t_.zoomflag=true;
+	{	t_.iszoomed=true;
 	}
 	if(t_.xaxmax==ud||isNaN(t_.xaxmax)||t_.xaxmax>t_.xmax)
 	{	t_.xaxmax=t_.xmax;
 	}else
-	{	t_.zoomflag=true;
+	{	t_.iszoomed=true;
 	}
 	t_.xloopn=Math.ceil((t_.xaxmax-t_.xaxmin)/t_.xinc);	
 	if(!isNaN(t_.loopbrk)&& (isNaN(t_.yrecalc_limit)|| t_.yrecalc_limit>t_.loopbrk))
 	{	t_.yrecalc_limit=t_.loopbrk;
 	}
 	if(!isNaN(t_.yrecalc_limit)&& t_.xloopn<=t_.yrecalc_limit
-		&&(t_.ypowadjust||t_.zoomflag||isNaN(t_.ymax)))
+		&&(t_.ypowadjust||t_.iszoomed||isNaN(t_.ymax)))
 	{	t_.yminact=Infinity; t_.ymaxact=-Infinity;
 		t_.gi_=0;t_.loopc=-1;
 		t_.getyrange_loopx();
@@ -587,21 +648,22 @@ SLLG.prototype.calcscales=function()
 		dobj=new Date();dobj.setTime(t_.xlbmin);
 		if(t_.xaxinc>=43200*60000){dobj.setDate(1);}
 		if(t_.xaxinc>=1440*60000){dobj.setHours(0);}
-		else if(t_.xaxinc>=120*60000){
-			var hr1=dobj.getHours();hr1-=hr1%2;dobj.setHours(hr1);
+		else if(t_.xaxinc>=120*60000)
+		{	var hr1=dobj.getHours();hr1-=hr1%2;dobj.setHours(hr1);
 		}if(t_.xaxinc>=60*60000){dobj.setMinutes(0);}
-		else if(t_.xaxinc>=2*60000){var minu1=dobj.getMinutes();minu1-=minu1%Math.floor(t_.xaxinc/60000);dobj.setMinutes(minu1);}
-		if(t_.xaxinc>=60000){dobj.setSeconds(0);}
+		else if(t_.xaxinc>=2*60000)
+		{	var minu1=dobj.getMinutes();
+			minu1-=minu1%Math.floor(t_.xaxinc/60000);
+			dobj.setMinutes(minu1);
+		}if(t_.xaxinc>=60000){dobj.setSeconds(0);}
 		t_.xlbmin=dobj.getTime();
 		while(t_.xlbmin<t_.xaxmin-(t_.xaxinc/2))
 		{	t_.xlbmin+=t_.xaxinc;
 		}
-	}
-	if(!t_.xtimeflag&& t_.xlbmin%t_.xaxinc!=0&& xmult>1)
+	}if(!t_.xtimeflag&& t_.xlbmin%t_.xaxinc!=0&& xmult>1)
 	{	t_.xlbmin+=t_.xaxinc;
 		t_.xlbmin-=(t_.xlbmin%t_.xaxinc);
-	}
-	t_.debuglog('xmult='+xmult+'|xaxinc='+t_.xaxinc+'|xlbmin='+t_.xlbmin+'='+SLLG.timestrfmt(t_.xlbmin),1);
+	}t_.debuglog('xmult='+xmult+'|xaxinc='+t_.xaxinc+'|xlbmin='+t_.xlbmin+'='+SLLG.timestrfmt(t_.xlbmin),1);
 	t_.ysclac=t_.yscale;
 	if(t_.yaxmax<t_.yaxmin)
 	{	t_.debuglog('swapping yaxmax='+t_.yaxmax+' with yaxmin='+t_.yaxmin,1);
@@ -623,8 +685,7 @@ SLLG.prototype.calcscales=function()
 	if(t_.ysclac!=1)
 	{	t_.yaxmax=SLLG.rounddec(t_.yaxmax/t_.ysclac,t_.ydec);
 		t_.yaxmin=SLLG.rounddec(t_.yaxmin/t_.ysclac,t_.ydec);
-	}
-	if(t_.yaxmin==t_.yaxmax)
+	}if(t_.yaxmin==t_.yaxmax)
 	{	t_.yaxmax+=1;t_.yaxmin-=1;
 	}t_.ylblh=t_.yunit?t_.lh:0;	
 	t_.hei_=t_.par.offsetHeight-(1.5*t_.lh)-2;
@@ -667,37 +728,11 @@ SLLG.prototype.calcscales=function()
 	if(t_.yrightmargin>0){w1-=t_.yrightmargin;}
 	if(t_.xaxmin==t_.xaxmax)
 	{	t_.xaxmax+=1;t_.xaxmin-=1;t_.xinc=1;
-	}
-	if(isNaN(t_.xinc))
+	}if(isNaN(t_.xinc))
 	{	t_.xinc=1;
 	}t_.sclx=w1/(t_.xaxmax-t_.xaxmin);
 	if(t_.xtimeflag)
 	{	t_.xsameyr=(SLLG.timestrfmt(t_.xaxmin,'y')==SLLG.timestrfmt(t_.xaxmax,'y'));
-	}
-	for(var i=0;i<t_.grpary.length;i++)
-	{	if(!t_.ptcanvs[i])
-		{	t_.ptcanvs[i]=document.createElement('canvas');
-			t_.ptcanvs[i].className='SLLG_ptcanv';
-			with(t_.ptcanvs[i].style){position='absolute';
-				top='0px';zIndex=t_.zind0+i+1;
-			}t_.ptcanvs[i].width=t_.wi_;
-			t_.ptcanvs[i].height=t_.hei_;
-			if(t_.excanvflag)
-			{	t_.ptcanvs[i]=G_vmlCanvasManager.initElement(t_.ptcanvs[i]);
-			}SLLG.unselectable(t_.ptcanvs[i],t_.excanvflag);
-			t_.par.appendChild(t_.ptcanvs[i]);
-		}
-		var cx1=t_.ptcanvs[i].getContext('2d');
-		cx1.clearRect(0,0,t_.ptcanvs[i].width,t_.ptcanvs[i].height);
-		t_.debuglog('ptcanvs #'+i+' clearRect:w='+t_.ptcanvs[i].width+'|h='+t_.ptcanvs[i].height,2);
-		t_.ptcanvs[i].width=t_.wi_;t_.ptcanvs[i].height=t_.hei_;
-		t_.ptcanvs[i].style.left=(t_.ylblw+t_.ylblh+t_.yleftmargin)+'px';
-		if(t_.yavgls[i]){t_.yavgls[i].style.display='none';}
-	}
-	with(t_.mousecanv)
-	{	style.left=(t_.ylblw+t_.ylblh-t_.yleftmargin)+'px';
-		width=t_.wi_+(2*t_.yleftmargin);
-		height=t_.hei_;
 	}t_.ofstbleft=t_.ylblw+t_.ylblh+t_.yleftmargin;
 	t_.ofstbtop=0;
 	var pnode=t_.par;
@@ -705,16 +740,42 @@ SLLG.prototype.calcscales=function()
 	{	pnode=pnode.parentNode;
 	}t_.ofstbleft+=pnode.offsetLeft;
 	t_.ofstbtop+=pnode.offsetTop;
-	t_.debuglog('wi_='+t_.wi_+'|hei_='+t_.hei_+'|sclx='+t_.sclx+'|scly='+t_.scly+'|xloopn='+t_.xloopn+'|canvw='+t_.ptcanvs[0].width+'|yaxmin='+t_.yaxmin+'|yaxmax='+t_.yaxmax+'|ofstbleft='+t_.ofstbleft+'|ofstbtop='+t_.ofstbtop,2);
+	t_.debuglog('wi_='+t_.wi_+'|hei_='+t_.hei_+'|sclx='+t_.sclx+'|scly='+t_.scly+'|xloopn='+t_.xloopn+'|yaxmin='+t_.yaxmin+'|yaxmax='+t_.yaxmax+'|ofstbleft='+t_.ofstbleft+'|ofstbtop='+t_.ofstbtop,2);
 	t_.mslast=(new Date()).getTime();
+};
+SLLG.prototype.canvasinit=function()
+{	var t_=this;
+	for(var i=0;i<t_.grpary.length;i++)
+	{	if(!t_.ptcanvs[i])
+		{	t_.ptcanvs[i]=document.createElement('canvas');
+			t_.ptcanvs[i].className='SLLG_ptcanv';
+			with(t_.ptcanvs[i].style)
+			{	position='absolute';
+				top='0px';zIndex=t_.zind0+i+1;
+			}t_.ptcanvs[i].width=t_.wi_;
+			t_.ptcanvs[i].height=t_.hei_;
+			if(t_.excanvflag)
+			{	t_.ptcanvs[i]=G_vmlCanvasManager.initElement(t_.ptcanvs[i]);
+			}SLLG.unselectable(t_.ptcanvs[i],t_.excanvflag);
+			t_.par.appendChild(t_.ptcanvs[i]);
+		}var cx1=t_.ptcanvs[i].getContext('2d');
+		cx1.clearRect(0,0,t_.ptcanvs[i].width,t_.ptcanvs[i].height);		
+		t_.debuglog('ptcanvs #'+i+' clearRect:w='+t_.ptcanvs[i].width+'|h='+t_.ptcanvs[i].height,2);
+		t_.ptcanvs[i].width=t_.wi_;t_.ptcanvs[i].height=t_.hei_;
+		t_.ptcanvs[i].style.left=(t_.ylblw+t_.ylblh+t_.yleftmargin)+'px';
+		if(t_.yavgls[i]){t_.yavgls[i].style.display='none';}
+	}with(t_.mousecanv)
+	{	style.left=(t_.ylblw+t_.ylblh-t_.yleftmargin)+'px';
+		width=t_.wi_+(2*t_.yleftmargin);
+		height=t_.hei_;
+	}
 };
 SLLG.prototype.getyrange_loopx=function()
 {	var t_=this,xv,dobj=new Date(),ud;
 	if(t_['ser_hide'][t_.gi_]|| t_.grpary[t_.gi_]==ud)
 	{	t_.loopc=Math.ceil(t_.xloopn);
 		t_.debuglog('calcY skip hidden series #'+t_.gi_,3);
-	}	
-	do
+	}do
 	{	t_.loopc++;
 		xv=(t_.loopc*t_.xinc)+t_.xaxmin;
 		if(xv>t_.xaxmax){break;}
@@ -781,11 +842,9 @@ SLLG.prototype.drawlegend=function()
 					{	fmt=(t_.xsameyr?'':'y/')+'m/d';
 					}
 				}
-			}
-			t_.debuglog('xais format: fmt='+fmt+'|xaxinc='+t_.xaxinc+'|xv='+xv,3);
+			}t_.debuglog('xais format: fmt='+fmt+'|xaxinc='+t_.xaxinc+'|xv='+xv,3);
 			xstr=SLLG.timestrfmt(xv,fmt);
-		}
-		var xlbl=document.createElement('span');
+		}var xlbl=document.createElement('span');
 		xlbl.className='SLLG_xlbl';
 		xlbl.innerHTML=xstr;
 		var xlblw=SLLG.getstr_wh(xstr,t_.par).w;
@@ -803,27 +862,24 @@ SLLG.prototype.drawlegend=function()
 			{	xlbl.style.display='none'; xclflag=false;
 				(widthcord-xlblw)>xc_endlast
 				t_.debuglog('xlbl overlap hide for ['+xstr+']:xc='+xc2+'|xlblw='+xlblw+'|xc_endlast='+xc_endlast+'|widthcord='+widthcord,2);
-			}
-			t_.debuglog('xlbl overlap:'+xstr+'|'+xlbl.style.display+'|xlbmin='+t_.xlbmin+'|axismin='+t_.xaxmin,4);
+			}t_.debuglog('xlbl overlap:'+xstr+'|'+xlbl.style.display+'|xlbmin='+t_.xlbmin+'|axismin='+t_.xaxmin,4);
 		}if(xc_endlast<xc2+xlblw+t_.xlblmargin)
 		{	xc_endlast=xc2+xlblw+t_.xlblmargin;
 		}with(xlbl.style)
 		{	position='absolute';textAlign='center';zIndex=t_.zind0+1;
-
 			left=xc2+'px';top=(t_.hei_+2)+'px';
 			if(xc2>widthcord-xlblw)
 			{	t_.debuglog('xlbl right-exceed ['+xstr+']:xcord='+xc2+'|xlblw='+xlblw+'|newlblw='+(widthcord-xc2),2);
 				if(widthcord>xc2){width=(widthcord-xc2)+'px';}
 				overflow='hidden';whiteSpace='nowrap';
 			}
-		}
-		t_.par.appendChild(xlbl);
+		}t_.par.appendChild(xlbl);
 		t_.lgelbls.push(xlbl);
 		if(!isNaN(t_.gridsize)&&t_.gridsize>0&& xclflag)
 		{	var xlblline=document.createElement('div');
 			xlblline.className='SLLG_xlblline';			
-			with(xlblline.style){
-				position='absolute';zIndex=t_.zind0+1;
+			with(xlblline.style)
+			{	position='absolute';zIndex=t_.zind0+1;
 				left=xc+'px';top='0px';
 				width='1px';height=t_.hei_+'px';
 				borderLeft=t_.gridsize+'px solid '+t_.gridcolor;
@@ -918,8 +974,7 @@ SLLG.prototype.drawseries_loopx=function()
 {	var t_=this,dobj=new Date(),cx1,xv,ud,nan=Number.NaN;
 	if(t_.ptcanvs[t_.gi_])
 	{	cx1=t_.ptcanvs[t_.gi_].getContext('2d')
-	}
-	if(cx1==ud){return;}
+	}if(cx1==ud){return;}
 	if(t_['ser_hide'][t_.gi_]||t_.grpary[t_.gi_]==ud)
 	{	t_.loopc=Math.ceil(t_.xloopn);
 		t_.debuglog('draw skip hidden series #'+t_.gi_,3);
@@ -942,7 +997,7 @@ SLLG.prototype.drawseries_loopx=function()
 		if(!isNaN(yv))
 		{	if(!isNaN(t_.ysclac))
 			{	yv=SLLG.rounddec(yv/t_.ysclac,t_.ydec);
-			}
+			}			
 			if(t_.statavg)
 			{	if(t_['ser_ysum'][t_.gi_]==ud)
 				{	t_['ser_ysum'][t_.gi_]=0;
@@ -972,7 +1027,7 @@ SLLG.prototype.drawseries_loopx=function()
 				{	t_['ser_benchcnt'][t_.gi_]++;
 				}
 			}
-		}
+		}		
 		var xc=t_.xval2cord(xv), yc=t_.yval2cord(yv);		
 		if(!isNaN(t_.xlastdraw)&& isNaN(yv)&& !isNaN(t_.xincgap)&& xv-t_.xlastdraw>=t_.xincgap)
 		{	cx1.stroke();t_.pathsize=0;
@@ -1231,9 +1286,8 @@ SLLG.prototype.iframe_update=function()
 	{	targ_re=window.frameElement.id+'';
 		targ_re=new RegExp('^'+targ_re.replace(/_[^_]+$/,'_'));
 		attrib='id';
-	}
-	var parwnd=window,x0=t_.xaxmin, x1=t_.xaxmax;
-	if(!t_.zoomflag){x0=ud;x1=ud;}
+	}var parwnd=window,x0=t_.xaxmin, x1=t_.xaxmax;
+	if(!t_.iszoomed){x0=ud;x1=ud;}
 	if(parent&&parent!=window){parwnd=parent;}
 	var targets=parwnd.document.getElementsByTagName('iframe');
 	for(var i=0;i<targets.length;i++)
@@ -1259,7 +1313,16 @@ SLLG.prototype.drawend=function()
 {	var t_=this,ud;
 	t_.mslast=(new Date()).getTime();
 	if(t_.loadlbl){t_.loadlbl.style.display='none';t_.loadlbl.innerHTML='';}
-	if(t_.statpar){t_.drawstats();}
+	if(t_.statpar){t_.drawstats();}	
+	if(!isNaN(t_.yrecalc_limit)&& t_.xloopn>t_.yrecalc_limit
+		&&!t_.iszoomed&& t_.ptcanvorigs.length<=0)
+	{	for(var gi=0;gi<t_.ptcanvs.length;gi++)
+		{	if(t_.excanvflag)
+			{	t_.ptcanvorigs[gi]=t_.ptcanvs[gi].getContext('2d').element_.innerHTML;			
+				continue;
+			}t_.ptcanvorigs[gi]=SLLG.clonecanvas(t_.ptcanvs[gi]);
+		}
+	}
 	if(t_.endfunc)
 	{	t_.endfunc(t_);
 	}var mscur=(new Date()).getTime();
@@ -1305,12 +1368,12 @@ SLLG.prototype.hili_init=function()
 		t_.debuglog('init: hilisub_'+i+'|'+SLLG.timestrfmt(),3);
 	}
 };
-SLLG.prototype.toggleseries=function(gind)
+SLLG.prototype.toggleseries=function(gi)
 {	var t_=this,ud;
-	if(t_['ser_hide'][gind]==ud){t_['ser_hide'][gind]=false;}
-	t_['ser_hide'][gind]=!t_['ser_hide'][gind];
-	t_.debuglog('ser_hide click:#'+gind+'|'+t_['ser_hide'][gind],4);
-	t_.ptcanvs[gind].style.visibility=t_['ser_hide'][gind]?'hidden':'visible';
+	if(t_['ser_hide'][gi]==ud){t_['ser_hide'][gi]=false;}
+	t_['ser_hide'][gi]=!t_['ser_hide'][gi];
+	t_.debuglog('ser_hide click:#'+gi+'|'+t_['ser_hide'][gi],4);
+	t_.ptcanvs[gi].style.visibility=t_['ser_hide'][gi]?'hidden':'visible';
 	if(!isNaN(t_.yrecalc_limit)&& t_.xloopn<=t_.yrecalc_limit)
 	{	t_.drawzoom(t_.xaxmin,t_.xaxmax);
 	}else
@@ -1318,8 +1381,8 @@ SLLG.prototype.toggleseries=function(gind)
 		t_.drawend();
 	}
 };
-SLLG.prototype.debuglog=function(s,c){
-	if(!c){c=4;}
+SLLG.prototype.debuglog=function(s,c)
+{	if(!c){c=4;}
 	var t_=this,ud;
 	if(isNaN(t_.debuglvl)||t_.debuglvl<c){return;}
 	if(t_.par.id)
@@ -1333,8 +1396,7 @@ SLLG.prototype.debuglog=function(s,c){
 	div1.innerHTML=s+'\n';
 	if(!t_.debuglognode)
 	{	t_.debuglognode=document.body;
-	}
-	t_.debuglognode.appendChild(div1);
+	}t_.debuglognode.appendChild(div1);
 };
 SLLG.prototype.exportdataurl=function()
 {	var t_=this;
@@ -1377,7 +1439,7 @@ SLLG.prototype.exportdataurl=function()
 SLLG.ie_pathlim=8190;
 SLLG.rounddec=function(n,p)
 {	if(isNaN(p)){return n;}
-	var ps= Math.pow(10,p);
+	var ps=Math.pow(10,p);
 	return Math.round(n*ps)/ps;
 };
 SLLG.stylestr2js=function(p)
@@ -1396,6 +1458,13 @@ SLLG.getcompstyle=function(el,prop)
 	{	y=document.defaultView.getComputedStyle(el);
 		if(y){y=y.getPropertyValue(prop);}
 	}return y;
+};
+SLLG.clonecanvas=function(c)
+{	var nc=c.cloneNode(true);
+	nc.width=c.width;
+    nc.height=c.height;
+	nc.getContext('2d').drawImage(c,0,0);
+	return nc;
 };
 SLLG.getstr_wh=function(str,pnd){
 	if(!str){str='A';} if(!pnd){pnd=document.body;}
