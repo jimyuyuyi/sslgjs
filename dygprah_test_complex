@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+<meta charset='UTF-8'/>
+<script type='text/javascript' src='./excanvas.js'></script>
+<script type='text/javascript' src='http://dygraphs.com/dygraph-dev.js'></script>
+<style>html,body{width:100%;height:100%;}
+	#graph_big{width:99%;height:70%;top:0;position:relative;}
+</style>
+</head><body>
+<noscript>Warning: Javascript not enabled, the graphs will not render.</noscript>
+<h1>Dygraph Test Page - Large Time-Series data - Benchmark Comparison</h1>
+<div id='graph_big'></div>
+<script>
+var gbig,datasize=550000,grpsize=4,incrng=30;
+var bigdata=[],lastvals=[],lbls=['x'],csvtxt='time,';
+function generate_data()
+{	var ms_start=new Date().getTime();
+	var x0=ms_start;x0-=x0%60000;	
+	for(var j=1;j<=grpsize;j++)
+	{	lbls[j]='Eth'+j;
+		csvtxt+=lbls[j]+',';
+	}csvtxt+='\n';
+	for(var i=0;i<datasize;i++)
+	{	var ti=(60000*i)+x0;
+		bigdata[i]=[ti];
+		csvtxt+=ti+',';
+		for(var j=1;j<=grpsize;j++)
+		{	if(!lastvals[j]){lastvals[j]=0;}
+			//place gap in between
+			if(j%2==1&& i%3459>=150&& i%3459<=300)
+			{	bigdata[i][j]='Not Number';
+				csvtxt+=bigdata[i][j]+',';
+				continue;
+			}lastvals[j]+=(Math.round(Math.random()*incrng)-(incrng*0.5));			
+			bigdata[i][j]=lastvals[j];			
+			//produce spike
+			if(j==1&& i%Math.ceil(datasize*0.52)==Math.ceil(datasize*0.5))
+			{	bigdata[i][j]=bigdata[i][j]+Math.pow(incrng,3);			
+			}csvtxt+=bigdata[i][j]+',';
+		}csvtxt+='\n';
+	}
+	var ms_end=new Date().getTime();
+	document.body.appendChild(document.createTextNode(
+		'Big data with '+datasize+' points generated in '+(ms_end-ms_start)+' milsec;\n'));	
+}
+generate_data();
+var ms_gstart=new Date().getTime();
+gbig=new Dygraph('graph_big',bigdata,
+	{	labels:lbls,colors:['blue','green','orange','red'],legend:'always'
+		,axes:{x:{valueFormatter: function(d){return new Date(d).toString().substr(0,23);},
+			axisLabelFormatter:function(d,g,o){return Dygraph.dateAxisLabelFormatter(new Date(d),g,o);}}}
+	});
+var csvdiv=document.createElement('div');
+//csvdiv.innerHTML='<xmp>'+csvtxt+'</xmp>';document.body.appendChild(csvdiv);
+csvtxt=null;
+document.body.appendChild(document.createTextNode(
+	'Big data rendered '+datasize+' points in '+(new Date().getTime()-ms_gstart)+' milsec;\n'));
+</script>
+</body></html>
