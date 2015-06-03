@@ -2,46 +2,59 @@
 <html><head>
 <meta http-equiv='X-UA-Compatible' content='IE=edge'>
 <meta charset='UTF-8'/>
-<script type='text/javascript' src='./SLLG.js'></script>
 <script type='text/javascript' src='./excanvas.js'></script>
+<script type='text/javascript' src='./SLLG.js'></script> 
+<!--<script type='text/javascript' src='/NSUPLOAD/NSSLF/jslib/SLLG_graph.js'></script> ////-->
 <style>html,body{width:100%;height:100%;}
-	
 	#graph_big{width:99%;height:70%;top:0;position:relative;}
 	#hidiv{text-align:center;margin-top:10px;}
+	#statnode{border:1px solid black;background-color:#DDEEEE;}
 </style>
 </head><body>
 <noscript>Warning: Javascript not enabled, the graphs will not render.</noscript>
-<h1>SLLG Test Page - Complicated mass data</h1>
+<h1>SLLG Test Page - Large Time-Series data</h1>
 <div id='graph_big'></div>
 <div id='hidiv'><span id='xhib'></span><span id='yhib'></span></div>
+<center id='statnode'></center>
 <script>
-var gbig,datasize=500000,incrng=400;
+var gbig,datasize=550000,grpsize=4,incrng=30;
 function biggraph_plot()
 {	var msec_start=(new Date()).getTime();
+	var x0=msec_start;x0-=x0%60000;
 	var bigdata={},lastvals=[],yminb=Infinity,ymaxb=-Infinity;
-	for(var i=0;i<datasize;i++)
-	{	for(var j=0;j<4;j++)
-		{	if(!bigdata['Eth'+j])
-			{	bigdata['Eth'+j]=[];
-				lastvals[j]=0;
-			}lastvals[j]+=(Math.round(Math.random()*incrng)-(incrng*0.5));
-			if(yminb>lastvals[j])
-			{	yminb=lastvals[j]
-			}
-			if(ymaxb<lastvals[j])
-			{	ymaxb=lastvals[j]
-			}bigdata['Eth'+j][i]=lastvals[j];
+	for(var j=0;j<grpsize;j++)
+	{	bigdata['Eth'+j]={};
+		lastvals[j]=0;
+		for(var i=0;i<datasize;i++)
+		{	var ti=(60000*i)+x0;
+			//place gap in between
+			if(j%2==1&& i%3459>=150&& i%3459<=300)
+			{	bigdata['Eth'+j][ti]='Not Number';
+				continue;
+			}lastvals[j]+=(Math.round(Math.random()*incrng)-(incrng*0.5));			
+			var yv=lastvals[j];
+			//produce spike
+			if(j==0&& i%Math.ceil(datasize*0.52)==Math.ceil(datasize*0.5))
+			{	yv+=Math.pow(incrng,3);			
+			}if(yminb>yv)
+			{	yminb=yv;
+			}if(ymaxb<yv)
+			{	ymaxb=yv;
+			}bigdata['Eth'+j][ti]=yv;
 		}
 	}var msec_end=(new Date()).getTime();
 	document.body.appendChild(document.createTextNode(
 		'Big data with '+datasize+' points generated in '+(msec_end-msec_start)+' milsec;\n'));
-	gbig=new SLLG('graph_big',bigdata,{xhili:'xhib',yhili:'yhib',colors:['blue','green','orange','red'],xmin:0,xmax:datasize,ymin:yminb,ymax:ymaxb,endfunc:biggraph_end,loadlbl:true});
+	gbig=new SLLG('graph_big',bigdata,
+		{xhili:'xhib',yhili:'yhib',colors:['blue','green','orange','red'],
+		xmin:x0,xmax:(60000*datasize)+x0,ymin:yminb,ymax:ymaxb,endfunc:biggraph_end,
+		loadlbl:false,xincgap:1,xtimeflag:true,statpar:'statnode'
+	});
 }
 function biggraph_end(gnd)
 {	if(gnd.drawdone){return;}
 	document.body.appendChild(document.createTextNode(
 		'Big data rendered '+gnd.xloopn+' points in '+(gnd.mslast-gnd.ms_start)+' milsec;\n'));
-}
-biggraph_plot();
+}biggraph_plot();
 </script>
 </body></html>
