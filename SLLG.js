@@ -14,36 +14,55 @@
 * development library or toolkit without explicit permission.
 **/
 var SLLG=function(pari,mapdatai,opts)
-{	var t_=this,ud,nan=Number.NaN,clrary=[];
-	pari=SLLG.getnodebyname(pari);
-	if(!pari){pari=document.body;}
-	t_.par=pari;
-	if(!t_.par.style.position|| !t_.par.style.position.match(/\w/))
-	{	t_.par.style.position='relative';
-	}t_.mapdata=mapdatai;
-	var defopts={'excanvflag':(typeof(G_vmlCanvasManager)!=''+ud),
-		'grpary':ud,'xinc':nan,'xincsub':nan,'xmin':nan,'xmax':nan,'xary':ud,'xincgap':nan,
-		'xtimeflag':ud,'ypowadjust':true,'endfunc':ud,'iframeupdatezoom':ud,
-		'yscale':nan,'ydec':4,'yunit':ud,'ymin':nan,'ymax':nan,'yudlbl':'NODATA',
-		'rpthrs':nan,'rpthre':nan,'combinemod':nan,'colind':nan,
-		'ymultintrvl':nan,
-		'yrecalc_limit':21600,'loopbrk':nan,'resizewait':500,'movewait':40,
-		'colors':[],'lineThickness':1.5,'zoomcolor':'rgba(128,128,128,0.33)',
-		'hili_size':6,'xhili':ud,'yhili':ud,'ser_hide':[],'loadlbl':ud,
-		'statpar':ud,'statmin':true,'statmax':true,'statavg':true,'stat_triglbl':true,'statpct':nan,
-		'stattimenode':ud,'statcolorlines':ud,'statbench':nan,'statbenchdesc':ud,
-		'gridcolor':'gray','gridsize':2,'gridopacity':0.2,'yavglsize':2,'yleftmargin':5,'yrightmargin':0,'xlblmargin':4,
-	};for(var k in defopts)
+{	var t_=this,ud,nan=Number.NaN,clrary=[];	
+	var defopts={
+		grpary:ud,colors:[],endfunc:ud,
+		xhili:ud,yhili:ud,ser_hide:[],loadlbl:ud,lineThickness:1.5,
+		xmin:nan,xmax:nan,xinc:nan,xincsub:nan,xary:ud,xincgap:nan,xtimeflag:ud,
+		ymin:nan,ymax:nan,yscale:nan,ydec:4,yunit:ud,yudlbl:'NODATA',ypowadjust:true,
+		rpthrs:nan,rpthre:nan,combinemod:nan,colind:nan,ymultintrvl:nan,
+		yrecalc_limit:21600,loopbrk:nan,resizewait:500,movewait:40,		
+		statpar:ud,statmin:true,statmax:true,statavg:true,stat_triglbl:true,statpct:nan,
+		stattimenode:ud,statcolorlines:ud,statbench:nan,statbenchdesc:ud,
+		zoomcolor:'rgba(128,128,128,0.33)',gridcolor:'gray',
+		gridsize:2,gridopacity:0.2,hili_size:6,yavglsize:2,yleftmargin:5,yrightmargin:0,xlblmargin:4,
+	};var genvars={
+		par:pari,mapdata:mapdatai,excanvflag:(typeof(G_vmlCanvasManager)!=''+ud),
+		ptcanvs:[],ptcanvorigs:[],mousecanv:0,hilnds:[],grpistr:ud,ms_start:ud,	
+		zind0:0,wi_:0,hei_:0,ylblw:0,ylblh:0,lh:0,dragcord:ud,
+		xlbmin:0,xaxmin:0,xaxmax:0,xaxinc:0,xsameyr:true,
+		yaxmin:0,yaxmax:0,yaxinc:0,yaxmin0:ud,yaxmax0:ud,
+		sclx:0,scly:0,xloopn:0,yminact:0,ymaxact:0,
+		ofstbleft:0,ofstbtop:0,mousevtset:ud,drawdone:ud,iszoomed:ud,
+		ysclac:1,ypowpre:ud,yunitact:ud,
+		plotdata:{},statlbls:[],statcol_lnodes:{},yavgls:[],lgelbls:[],yhisubs:[],
+		stat_arys:{ser_ysum:[],ser_xcnt:[],ser_benchcnt:[],ser_maxpt:[],ser_vals:[],ser_minpt:[]},
+		stat_origs:ud,sbnchnode:ud,mvtimer:ud,gi_:0,loopc:0,
+		xlastdraw:0,xlastmove:ud,pathsize:0
+	};
+	for(var k in defopts)
 	{	if(opts&& opts[k]!=ud)
 		{	t_[k]=opts[k];
 		}else
 		{	t_[k]=defopts[k];
 		}
-	}if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
+	}for(var k in genvars){t_[k]=genvars[k];}
+	t_.par=SLLG.getnodebyname(t_.par);
+	if(!t_.par){t_.par=document.body;}
+	else if(!t_.par.style.position|| !t_.par.style.position.match(/\w/))
+	{	t_.par.style.position='relative';
+	}	
+	if(!isNaN(t_['statpct'])&&(t_['statpct']>100||t_['statpct']<0))
 	{	t_['statpct']=nan;
 	}
 	if(t_.xinc==0){t_.xinc=nan;}
-	if(SLLG.isArray(t_.xary)&& t_.xary.length>0)
+	if(isNaN(t_.loopbrk))
+	{	if(t_.excanvflag)
+		{	t_.loopbrk=30000;
+		}else if(t_.loadlbl)
+		{	t_.loopbrk=40000;
+		}
+	}if(SLLG.isArray(t_.xary)&& t_.xary.length>0)
 	{	t_.xtimeflag=ud;
 		if(isNaN(t_.xmin))
 		{	t_.xmin=0;
@@ -55,14 +74,12 @@ var SLLG=function(pari,mapdatai,opts)
 		if(isNaN(t_.xmax)||isNaN(t_.xmin)||isNaN(t_.xinc))
 		{	if(isNaN(t_.xmin)){t_.xmin=Infinity;}
 			if(isNaN(t_.xmax)){t_.xmax=-Infinity;}
-			var trycnt=100;
+			var trycnt=0;
 			for(var grp in t_.mapdata)
 			{	var x0=nan;
 				for(x in t_.mapdata[grp])
-				{	trycnt--;
-					if(!isNaN(t_.xmax+t_.xmin+t_.xinc))
-					{	trycnt=0;
-					}if(trycnt<=0){break;}
+				{	trycnt++;
+					if(trycnt>=t_.yrecalc_limit){break;}
 					x=parseFloat(x);
 					if(isNaN(x)){continue;}
 					if(t_.xmax<x)
@@ -76,7 +93,7 @@ var SLLG=function(pari,mapdatai,opts)
 						{	t_.xinc=x-x0;
 						}
 					}
-				}if(trycnt<=0){break;}
+				}if(trycnt>=t_.yrecalc_limit){break;}
 			}
 		}
 	}
@@ -88,16 +105,12 @@ var SLLG=function(pari,mapdatai,opts)
 		for(var grp in t_.mapdata)
 		{	t_.grpary.push(grp);
 		}
-	}
-	if(!isNaN(t_.yscale)&& (t_.yscale==1||t_.yscale==0))
-	{
-		t_.yscale=nan;
-	}
-	if(t_.yunit==ud){t_.ypowadjust=false;}
+	}if(!isNaN(t_.yscale)&& (t_.yscale==1||t_.yscale==0))
+	{	t_.yscale=nan;
+	}if(t_.yunit==ud){t_.ypowadjust=false;}
 	if(t_.grpary.length<=0)
 	{	return;
-	}
-	for(var gi=0;gi<t_.grpary.length;gi++)
+	}for(var gi=0;gi<t_.grpary.length;gi++)
 	{	var colr=ud;
 		if(t_.grpary[gi]!=ud)
 		{	if(t_.colors.length>0)
@@ -132,19 +145,7 @@ var SLLG=function(pari,mapdatai,opts)
 		}
 	}if(t_.yunit!=ud&&(typeof(t_.yunit)).match(/^str/i)&& !t_.yunit.match(/[^ ]/))
 	{	t_.yunit=ud;
-	}var genvars={'ptcanvs':[],'ptcanvorigs':[],'mousecanv':0,'hilnds':[],'grpistr':ud,'ms_start':ud,
-		'zind0':0,'wi_':0,'hei_':0,'ylblw':0,'ylblh':0,'lh':0,'dragcord':ud,
-		'xlbmin':0,'xaxmin':0,'xaxmax':0,'xaxinc':0,'xsameyr':true,
-		'yaxmin':0,'yaxmax':0,'yaxinc':0,'yaxmin0':ud,'yaxmax0':ud,
-		'sclx':0,'scly':0,'xloopn':0,'yminact':0,'ymaxact':0,
-		'ofstbleft':0,'ofstbtop':0,'mousevtset':ud,'drawdone':ud,'iszoomed':ud,
-		'ysclac':t_.yscale,'ypowpre':'','yunitact':0,
-		'plotdata':{},'statlbls':[],'statcol_lnodes':{},'yavgls':[],'lgelbls':[],'yhisubs':[],
-		'stat_arys':{'ser_ysum':[],'ser_xcnt':[],'ser_benchcnt':[],'ser_maxpt':[],'ser_vals':[],'ser_minpt':[]},
-		'stat_origs':ud,
-		'sbnchnode':ud,'mvtimer':ud,'gi_':0,'loopc':0,
-		'xlastdraw':0,'xlastmove':ud,'pathsize':0};
-	for(var k in genvars){t_[k]=genvars[k];}
+	}
 	for(var gi=0;gi<t_.grpary.length;gi++)
 	{	var grp=t_.grpary[gi];
 		if(grp!=ud&& !t_.mapdata[gi]&& t_.mapdata[grp])
@@ -166,12 +167,6 @@ var SLLG=function(pari,mapdatai,opts)
 			with(t_.loadlbl.style){position='absolute';left='20%';top='0%';
 				zIndex=t_.zind0+t_.grpary.length+9;}
 			t_.par.appendChild(t_.loadlbl);
-		}
-	}if(isNaN(t_.loopbrk))
-	{	if(t_.excanvflag)
-		{	t_.loopbrk=30000;
-		}else if(t_.loadlbl)
-		{	t_.loopbrk=40000;
 		}
 	}if(!t_.mousecanv)
 	{	t_.mousecanv=document.createElement('canvas');
@@ -203,8 +198,7 @@ SLLG.prototype.getmapdata=function(grp,xv)
 		{	var yv2=t_.getmapdata_sub(grp,xv2);
 			if(isNaN(yv2)){continue;}
 			if(t_.ymultintrvl&& !isNaN(t_.ymultintrvl))
-			{
-				if(roundnext)
+			{	if(roundnext)
 				{	var ymult=Math.round((xv2-xv2l)/t_.ymultintrvl);
 					if(ymult>1){yv*=ymult;}
 					roundnext=false;
@@ -426,7 +420,7 @@ SLLG.prototype.mousemove_=function(e)
 		ctx.fillRect(xcary[0],0,(xcary[1]-xcary[0]),t_.hei_);
 		return false;
 	}
-	if(t_.drawdone&& t_.hili_size>0)
+	if(t_.drawdone&& (t_.xhili||t_.yhili))
 	{	if(t_.excanvflag&& t_.xloopn>=t_.loopbrk)
 		{	if(t_.mvtimer){clearTimeout(t_.mvtimer);}
 			t_.mvtimer=setTimeout(function(e){t_.hili_update(xc,yc);delete(t_.mvtimer);},t_.movewait);
@@ -437,6 +431,7 @@ SLLG.prototype.mousemove_=function(e)
 };
 SLLG.prototype.hili_update=function(xc,yc)
 {	var t_=this,xupdflag=false,msstart=(new Date()).getTime(),dobj=new Date(),ud;
+	if(!t_.xhili&& !t_.yhili){return true;}
 	if(xc==ud)
 	{	if(t_.xlastmove!=ud)
 		{	xc=t_.xlastmove;
@@ -632,8 +627,7 @@ SLLG.prototype.calcscales=function()
 	}if(!t_.xtimeflag&& t_.xlbmin%t_.xaxinc!=0&& xmult>1)
 	{	t_.xlbmin+=t_.xaxinc;
 		t_.xlbmin-=(t_.xlbmin%t_.xaxinc);
-	}
-	t_.ysclac=t_.yscale;
+	}t_.ysclac=t_.yscale;
 	if(t_.yaxmax<t_.yaxmin)
 	{
 		var ytmp=t_.yaxmin;
@@ -889,7 +883,7 @@ SLLG.prototype.drawlegend=function()
 	}
 	if(t_.yunit)
 	{	t_.yunitact=t_.yunit;
-		if(t_.ypowpre.length>0)
+		if(t_.ypowpre!=ud&& t_.ypowpre.length>0)
 		{	var ypowv=SLLG.powvalstr_map[t_.ypowpre], yprechr=t_.yunit.match(/[a-z]/i),yprechr2=ud;
 			if(SLLG.powvalstr_map[yprechr])
 			{	ypowv*=SLLG.powvalstr_map[yprechr];
@@ -1013,7 +1007,7 @@ SLLG.prototype.drawpoint=function()
 		t_.pathsize++;
 		t_.xlastdraw=xv;
 	}
-	if(t_.excanvflag&& t_.pathsize>0&&t_.pathsize%SLLG.ie_pathlim==0)
+	if(t_.excanvflag&& t_.pathsize>0&&t_.pathsize%SLLG.excanv_pathlim==0)
 	{	cx1.stroke();t_.pathsize=0;
 		t_.xlastdraw=nan;
 	}
@@ -1225,37 +1219,6 @@ SLLG.prototype.drawstats=function()
 		}t_.sbnchnode.innerHTML=benchline;
 	}
 };
-SLLG.prototype.iframe_update=function()
-{	var t_=this,ud;
-	if(!t_.iframeupdatezoom){return false;}
-	var targ_re=t_.iframeupdatezoom;
-	var attrib='src';
-	if(window.frameElement&& window.frameElement.id)
-	{	targ_re=window.frameElement.id+'';
-		targ_re=new RegExp('^'+targ_re.replace(/_[^_]+$/,'_'));
-		attrib='id';
-	}var parwnd=window,x0=t_.xaxmin, x1=t_.xaxmax;
-	if(!t_.iszoomed){x0=ud;x1=ud;}
-	if(parent&&parent!=window){parwnd=parent;}
-	var targets=parwnd.document.getElementsByTagName('iframe');
-	for(var i=0;i<targets.length;i++)
-	{	if(targets[i]===window.frameElement)
-		{	continue;
-		}var attribval=targets[i][attrib];
-		if(!attribval.match(targ_re))
-		{	continue;
-		}if(targets[i].offsetParent==ud|| !targets[i].contentWindow)
-		{	continue;
-		}
-		if(targets[i].contentWindow.gobj&& targets[i].contentWindow.gobj.drawzoom)
-		{	targets[i].contentWindow.gobj.drawzoom(x0,x1);
-		}else if(targets[i].contentWindow.callzoom)
-		{	targets[i].contentWindow.callzoom(x0,x1);
-		}else if(targets[i].contentWindow)
-		{	targets[i].contentWindow.location.reload();
-		}
-	}
-};
 SLLG.prototype.drawend=function()
 {	var t_=this,ud;
 	t_.mslast=(new Date()).getTime();
@@ -1283,8 +1246,7 @@ SLLG.prototype.drawend=function()
 	}
 	if(!isNaN(t_.resizewait)&& t_.resizewait>=0)
 	{	SLLG.evtadd(window,'resize',function(e){return t_['resize_'](e);});
-	}if(t_.iframeupdatezoom){t_.iframe_update();}
-	t_.drawdone=true;
+	}t_.drawdone=true;
 };
 SLLG.prototype.hili_init=function()
 {	var t_=this,ud;
@@ -1366,7 +1328,7 @@ SLLG.prototype.exportdataurl=function()
 		expctx.fillText(txt,xc,yc);
 	}return expcanv.toDataURL();
 };
-SLLG.ie_pathlim=8190;
+SLLG.excanv_pathlim=8190;
 SLLG.rounddec=function(n,p)
 {	if(isNaN(p)){return n;}
 	var ps=Math.pow(10,p);
