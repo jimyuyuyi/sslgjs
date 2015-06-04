@@ -32,7 +32,8 @@ var SLLG=function(pari,mapdatai,opts)
 		'hili_size':6,'xhili':ud,'yhili':ud,'ser_hide':[],'loadlbl':ud,
 		'statpar':ud,'statmin':ud,'statmax':true,'statavg':true,'stat_triglbl':true,'statpct':nan,
 		'stattimenode':ud,'statcolorlines':ud,'statbench':nan,'statbenchdesc':ud,
-		'gridcolor':'gray','gridsize':2,'gridopacity':0.2,'yavglsize':2,'yleftmargin':5,'yrightmargin':0,'xlblmargin':4,'debuglvl':0,'debuglognode':document.body
+		'gridcolor':'gray','gridsize':2,'gridopacity':0.2,'yavglsize':2,'yleftmargin':5,'yrightmargin':0,'xlblmargin':4,
+		'debuglvl':0,'debuglognode':document.body
 	};for(var k in defopts)
 	{	if(opts&& opts[k]!=ud)
 		{	t_[k]=opts[k];
@@ -80,7 +81,8 @@ var SLLG=function(pari,mapdatai,opts)
 				}if(trycnt<=0){break;}
 			}
 		}
-	}if(isNaN(t_.xinc)){t_.xinc=1;t_.debuglog('set default xinc='+t_.xinc,2);}
+	}
+	if(isNaN(t_.xinc)){t_.xinc=1;t_.debuglog('set default xinc='+t_.xinc,2);}
 	if(t_.xtimeflag==ud&& t_.xmin>=86400000&& t_.xmax>=86400000)
 	{	t_.xtimeflag=true;
 	}if(!t_.grpary||!t_.grpary.length||t_.grpary.length<=0)
@@ -136,7 +138,7 @@ var SLLG=function(pari,mapdatai,opts)
 	}var genvars={'ptcanvs':[],'ptcanvorigs':[],'mousecanv':0,'hilnds':[],'grpistr':ud,'ms_start':ud,
 		'zind0':0,'wi_':0,'hei_':0,'ylblw':0,'ylblh':0,'lh':0,'dragcord':ud,
 		'xlbmin':0,'xaxmin':0,'xaxmax':0,'xaxinc':0,'xsameyr':true,
-		'ylbmin':0,'yaxmin':0,'yaxmax':0,'yaxinc':0,'yaxmin0':ud,'yaxmax0':ud,
+		'yaxmin':0,'yaxmax':0,'yaxinc':0,'yaxmin0':ud,'yaxmax0':ud,
 		'sclx':0,'scly':0,'xloopn':0,'yminact':0,'ymaxact':0,
 		'ofstbleft':0,'ofstbtop':0,'mousevtset':ud,'drawdone':ud,'iszoomed':ud,
 		'ysclac':t_.yscale,'ypowpre':'','yunitact':0,
@@ -673,7 +675,7 @@ SLLG.prototype.calcscales=function()
 	}if(t_.yaxmin==t_.yaxmax)
 	{	t_.yaxmax+=1;t_.yaxmin-=1;
 	}t_.ylblh=t_.yunit?t_.lh:0;
-	t_.hei_=t_.par.offsetHeight-(1.5*t_.lh)-2;
+	t_.hei_=Math.floor(t_.par.offsetHeight-(1.5*t_.lh)-2);
 	var maxpowval=Math.max(Math.abs(t_.yaxmin),Math.abs(t_.yaxmax));
 	if(maxpowval==0){maxpowval=1;}
 	var tpow=Math.floor(Math.log(maxpowval)/Math.log(10))-1;
@@ -685,25 +687,23 @@ SLLG.prototype.calcscales=function()
 	if(ymult%2!=0&& ymult%5!=0&& ymult>1){ymult--;}
 	t_.yaxinc=ypowv*ymult;
 	t_.debuglog('yaxmax='+t_.yaxmax+'|yaxmin='+t_.yaxmin+'|maxpowval='+maxpowval+'|y-tpow='+tpow+'|ypowv='+ypowv+'|ymult='+ymult+'|lh='+t_.lh+'|hei_='+t_.hei_+'|yaxinc='+t_.yaxinc+'|ysclac='+t_.ysclac,2);
-	t_.ylbmin=t_.yaxmin;
+	
 	if(!isNaN(t_.yaxmin_roundintrv))
 	{	for(var k=(1-t_.yaxmin_roundintrvl);k>0;k-=t_.yaxmin_roundintrvl)
 		{	if((t_.yaxmin0/t_.ysclac)>(t_.yaxmin+(t_.yaxinc*k)))
 			{	t_.debuglog('yaxmin lbl increase: yminorig='+(t_.yaxmin0/t_.ysclac)+'|yaxinc='+t_.yaxinc+'|t_.yaxmin='+t_.yaxmin,2);
 				t_.yaxmin+=(t_.yaxinc*k);
-				t_.ylbmin+=t_.yaxinc;
+				
 				break;
 			}
 		}
 	}t_.yaxmax-=t_.yaxmax%t_.yaxinc;
 	if((t_.yaxmax0/t_.ysclac)>t_.yaxmax)
 	{	t_.yaxmax+=t_.yaxinc;
-	}t_.ylbmin-=(t_.ylbmin%t_.yaxinc);
-	if(t_.ylbmin>t_.yaxmin)
-	{	t_.ylbmin-=t_.yaxinc;
-	}t_.ylbmin=SLLG.rounddec(t_.ylbmin,t_.ydec);
+	}t_.yaxmin-=(t_.yaxmin%t_.yaxinc);
+	t_.yaxmin=SLLG.rounddec(t_.yaxmin,t_.ydec);	
 	t_.yaxmax=SLLG.rounddec(t_.yaxmax,t_.ydec);
-	var minwh=SLLG.getstr_wh('Z'+t_.ylbmin,t_.par);
+	var minwh=SLLG.getstr_wh('Z'+t_.yaxmin,t_.par);
 	var maxwh=SLLG.getstr_wh('Z'+t_.yaxmax,t_.par);
 	t_.ylblw=Math.max(minwh.w,maxwh.w);
 	t_.wi_=t_.par.offsetWidth-t_.ylblw-t_.ylblh-t_.yleftmargin-t_.hili_size;
@@ -752,7 +752,7 @@ SLLG.prototype.canvasinit=function()
 	}with(t_.mousecanv)
 	{	style.left=(t_.ylblw+t_.ylblh-t_.yleftmargin)+'px';
 		width=t_.wi_+(2*t_.yleftmargin);
-		height=t_.hei_;
+		height=t_.hei_;		
 	}
 };
 SLLG.prototype.getyrange_loopx=function()
@@ -887,9 +887,8 @@ SLLG.prototype.drawlegend=function()
 			else{opacity=t_.gridopacity;}
 		}t_.par.appendChild(xlblline);
 		t_.lgelbls.push(xlblline);
-	}
-	t_.debuglog('yaxislbls:min='+t_.ylbmin+'|max='+t_.yaxmax+'|inc='+t_.yaxinc+'|lblw='+t_.ylblw,2);
-	for(var yv=t_.ylbmin;yv<=t_.yaxmax;yv+=t_.yaxinc)
+	}	
+	for(var yv=t_.yaxmin;yv<=t_.yaxmax;yv+=t_.yaxinc)
 	{	yv=SLLG.rounddec(yv,t_.ydec);
 		var ylbl=document.createElement('span');
 		ylbl.className='SLLG_ylbl';
