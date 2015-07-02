@@ -47,6 +47,7 @@ Options References:
 - ser_hide: Array of boolean to indicate which arrays are hidden at start. Default: blank, no series hidden.
 - loadlbl: Loading progress Label node.
 - lineThickness: Line thickness of graph. Default:1.5
+- areafill: wheter or not to fill in area under line graph. Default: false.
 
 - xmin: Minimum X value to plot.
 - xmax: Maximum X value to plot.
