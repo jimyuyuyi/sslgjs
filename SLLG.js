@@ -18,8 +18,8 @@ var SLLG=function(pari,mapdatai,opts)
 	var defopts={
 		grpary:ud,colors:[],endfunc:ud,
 		xhili:ud,yhili:ud,ser_hide:[],loadlbl:ud,lineThickness:1.5,areafill:false,
-		xmin:nan,xmax:nan,xinc:nan,xincsub:nan,xary:ud,xincgap:nan,xtimeflag:ud,
-		ymin:nan,ymax:nan,yscale:nan,ydec:4,yunit:ud,yudlbl:'NODATA',ypowadjust:true,
+		xmin:nan,xmax:nan,xinc:nan,xincsub:nan,xary:ud,xincgap:nan,xtimeflag:ud, xincsub_addflag:true,
+		ymin:nan,ymax:nan,yscale:nan,ydec:4,yunit:ud,yudlbl:'NODATA',ypowadjust:true,fillwithprev:false,
 		rpthrs:nan,rpthre:nan,combinemod:nan,colind:nan,ymultintrvl:nan,
 		yrecalc_limit:21600,loopbrk:nan,resizewait:500,movewait:40,
 		statpar:ud,statmin:true,statmax:true,statavg:true,stat_triglbl:true,statpct:nan,
@@ -34,12 +34,12 @@ var SLLG=function(pari,mapdatai,opts)
 		yaxmin:0,yaxmax:0,yaxinc:0,yaxmin0:ud,yaxmax0:ud,
 		sclx:0,scly:0,xloopn:0,yminact:0,ymaxact:0,
 		ofstbleft:0,ofstbtop:0,mousevtset:ud,drawdone:ud,iszoomed:ud,
-		ysclac:1,ypowpre:ud,yunitact:ud,
+		ysclac:1,ypowpre:ud,yunitact:ud,yvprev:nan,
 		plotdata:{},statlbls:[],statcol_lnodes:{},yavgls:[],lgelbls:[],yhisubs:[],
 		stat_arys:{ser_ysum:[],ser_xcnt:[],ser_benchcnt:[],ser_maxpt:[],ser_vals:[],ser_minpt:[]},
 		stat_origs:ud,sbnchnode:ud,mvtimer:ud,gi_:0,loopc:0,
 		xpathstart:ud,xlastdraw:ud,xlastmove:ud,pathsize:0
-	};	
+	};
 	for(var k in defopts)
 	{	if(opts[k]!=ud)
 		{	t_[k]=opts[k];
@@ -229,7 +229,10 @@ SLLG.prototype.getmapdata_range=function(grp,xs,xe)
 				{	ymultmin=ymult;
 				}
 			}xlast=xv;
-			yv=(yv?yv:0)+yv2;
+			if(!t_.xincsub_addflag)
+			{	yv=yv2;
+				break;
+			}yv=(yv?yv:0)+yv2;
 		}//special case: non-existant date end, count entire day for whole multipier
 		if(!isNaN(t_.ymultintrvl)&&isNaN(ymultmin)&& xlast!=ud&& t_.xtimeflag&& t_.xinc>=86400000)
 		{	ymultmin=Math.ceil(t_.xinc/t_.ymultintrvl);
@@ -604,7 +607,7 @@ SLLG.prototype.drawzoom=function(x0,x1)
 	if(!isNaN(t_.yrecalc_limit)&& t_.xloopn<=t_.yrecalc_limit
 		&&((t_.ypowadjust&&!isNaN(t_.yscale))||t_.iszoomed||isNaN(t_.ymax)))
 	{	t_.yminact=Infinity; t_.ymaxact=-Infinity;
-		t_.gi_=0;t_.loopc=-1;		
+		t_.gi_=0;t_.loopc=-1;
 		t_.ysclac=t_.yscale;
 		t_.plotdata={};
 		t_.getyrange_loopx();
@@ -614,7 +617,6 @@ SLLG.prototype.drawzoom=function(x0,x1)
 		t_.yaxmin=t_.ymin;
 		t_.drawstart();
 	}
-
 };
 SLLG.prototype.calcscales=function()
 {	var t_=this,ud,dobj=new Date();
@@ -983,7 +985,7 @@ SLLG.prototype.endpath=function()
 			cx.lineTo(xce,ycs);
 			cx.lineTo(xcs,ycs);
 			cx.fill();
-		}		
+		}
 		if(!isNaN(t_.xpathstart)&& t_.xpathstart==t_.xlastdraw&& t_.pathsize<2)
 		{	var yvl=t_.getmapdata(t_.gi_,t_.xpathstart);
 			var ycl=t_.yval2cord(yvl);
@@ -1010,7 +1012,15 @@ SLLG.prototype.drawpoint=function()
 			{	t_.endpath();
 			}return;
 		}
-	}var yv=t_.getmapdata(t_.gi_,xv);	
+	}var yv=t_.getmapdata(t_.gi_,xv);
+	if(t_.fillwithprev&& t_.mapdata[t_.gi_])
+	{	if(isNaN(yv))
+		{	yv=t_.yvprev;
+			t_.plotdata[t_.gi_][xv]=yv;
+		}else
+		{	t_.yvprev=yv;
+		}
+	}
 	if(!isNaN(yv))
 	{	if(t_.statavg)
 		{	if(t_['ser_ysum'][t_.gi_]==ud)
@@ -1532,6 +1542,7 @@ SLLG.getnodebyname=function(nd)
 		if(!nd2)
 		{	nd2=document.getElementsByName(nd);
 			if(nd2&& nd2.length>0){nd2=nd2[0];}
+			else{nd2=ud;}
 		}return nd2;
 	}return ud;
 };
