@@ -52,11 +52,12 @@ Options References:
 - xmin: Minimum X value to plot.
 - xmax: Maximum X value to plot.
 - xinc: X value increment for each data point.
-- xincsub: X sub-increment for summation/rollover within xinc intervals.
+- xincsub: X sub-interval increment for summation/rollover within xinc intervals.
 - xary: Array of X-values to plot.
 - xincgap: How many consecutive xinc with no data to be drawn as a gap. 
 	No gap is drawn if this is not defined. 
 - xtimeflag: Boolean indicator whether x-values are time (milliseconds) values. Default: false.
+- xincsub_addflag option: boolean wheter or not subinterval values gets summed up, or only get the first valid sub-interval value as representative of interval. Default: true
 
 - ymin: Minimum Y value to plot.
 - ymax: Maximum Y value to plot.
